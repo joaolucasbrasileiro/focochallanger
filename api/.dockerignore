@@ -1,0 +1,11 @@
+.env
+.git
+.gitignore
+.phpunit.result.cache
+.dockerignore
+Dockerfile
+vendor
+node_modules
+storage/logs
+database/database.sqlite
+public/build

@@ -18,5 +18,5 @@
 # IDE project settings
 .idea/
 
-# Legacy local backend folder
-backend/
+# Docker local overrides
+.env
