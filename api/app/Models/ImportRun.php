@@ -21,6 +21,12 @@ class ImportRun extends Model
     /** @use HasFactory<ImportRunFactory> */
     use HasFactory;
 
+    public const StatusRunning = 'running';
+
+    public const StatusCompleted = 'completed';
+
+    public const StatusFailed = 'failed';
+
     /**
      * @return array<string, string>
      */

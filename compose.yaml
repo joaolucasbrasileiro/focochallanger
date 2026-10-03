@@ -19,6 +19,9 @@ services:
       DB_DATABASE: foco_hotel
       DB_USERNAME: foco
       DB_PASSWORD: foco
+      IMPORT_HOTELS_PATH: /var/www/imports/hotels.xml
+      IMPORT_ROOMS_PATH: /var/www/imports/rooms.xml
+      IMPORT_RESERVATIONS_PATH: /var/www/imports/reserves.xml
     ports:
       - "${APP_PORT:-8080}:80"
     volumes:
