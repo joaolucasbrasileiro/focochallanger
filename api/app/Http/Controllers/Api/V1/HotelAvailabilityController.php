@@ -21,12 +21,10 @@ class HotelAvailabilityController extends Controller
             'hotel' => $hotel,
             'check_in' => $data['check_in'],
             'check_out' => $data['check_out'],
-            'guests' => $data['guests'],
             'rooms' => $roomAvailability->forHotel(
                 $hotel,
                 $data['check_in'],
                 $data['check_out'],
-                $data['guests'],
             ),
         ]);
     }

@@ -25,7 +25,6 @@ class ReservationResource extends JsonResource
                 'id' => $this->room->id,
                 'hotel_id' => $this->room->hotel_id,
                 'name' => $this->room->name,
-                'capacity' => $this->room->capacity,
             ]),
             'guests' => $this->whenLoaded('guests', fn (): array => $this->guests
                 ->map(fn ($guest): array => [

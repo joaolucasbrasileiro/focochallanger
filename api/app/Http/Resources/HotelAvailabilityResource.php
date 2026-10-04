@@ -18,7 +18,6 @@ class HotelAvailabilityResource extends JsonResource
             'hotel' => new HotelResource($this->resource['hotel']),
             'check_in' => $this->resource['check_in'],
             'check_out' => $this->resource['check_out'],
-            'guests' => $this->resource['guests'],
             'rooms' => $this->resource['rooms'],
         ];
     }

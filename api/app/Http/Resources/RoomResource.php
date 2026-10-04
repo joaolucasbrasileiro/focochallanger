@@ -19,7 +19,6 @@ class RoomResource extends JsonResource
             'external_id' => $this->external_id,
             'hotel_id' => $this->hotel_id,
             'name' => $this->name,
-            'capacity' => $this->capacity,
             'is_active' => $this->is_active,
             'hotel' => $this->whenLoaded('hotel', fn (): array => [
                 'id' => $this->hotel->id,

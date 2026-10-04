@@ -30,7 +30,6 @@ class CreateReservationService
                 $data['room_name'],
                 $data['check_in'],
                 $data['check_out'],
-                count($data['guests']),
             );
 
             if ($room === null) {

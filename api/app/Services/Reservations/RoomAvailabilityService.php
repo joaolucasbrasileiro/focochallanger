@@ -12,9 +12,9 @@ class RoomAvailabilityService
     /**
      * @return Collection<int, array{name: string, total_units: int, available_units: int}>
      */
-    public function forHotel(Hotel $hotel, string $checkIn, string $checkOut, int $guests): Collection
+    public function forHotel(Hotel $hotel, string $checkIn, string $checkOut): Collection
     {
-        $rooms = $this->matchingRooms($hotel, $guests);
+        $rooms = $this->matchingRooms($hotel);
         $occupiedRoomIds = $this->occupiedRoomIds($rooms, $checkIn, $checkOut);
 
         return $rooms
@@ -36,9 +36,8 @@ class RoomAvailabilityService
         string $roomName,
         string $checkIn,
         string $checkOut,
-        int $guests,
     ): ?Room {
-        $rooms = $this->matchingRooms($hotel, $guests, $roomName, true);
+        $rooms = $this->matchingRooms($hotel, $roomName, true);
         $occupiedRoomIds = $this->occupiedRoomIds($rooms, $checkIn, $checkOut);
 
         return $rooms->first(fn (Room $room): bool => ! $occupiedRoomIds->has($room->id));
@@ -47,12 +46,11 @@ class RoomAvailabilityService
     /**
      * @return Collection<int, Room>
      */
-    private function matchingRooms(Hotel $hotel, int $guests, ?string $roomName = null, bool $lockForUpdate = false): Collection
+    private function matchingRooms(Hotel $hotel, ?string $roomName = null, bool $lockForUpdate = false): Collection
     {
         $query = Room::query()
             ->where('hotel_id', $hotel->id)
             ->where('is_active', true)
-            ->where('capacity', '>=', $guests)
             ->orderBy('name')
             ->orderBy('id');
 

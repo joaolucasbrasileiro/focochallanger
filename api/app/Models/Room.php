@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['hotel_id', 'external_id', 'name', 'capacity', 'is_active'])]
+#[Fillable(['hotel_id', 'external_id', 'name', 'is_active'])]
 class Room extends Model
 {
     /** @use HasFactory<RoomFactory> */
@@ -32,7 +32,6 @@ class Room extends Model
     {
         return [
             'external_id' => 'integer',
-            'capacity' => 'integer',
             'is_active' => 'boolean',
         ];
     }

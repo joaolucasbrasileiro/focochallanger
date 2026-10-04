@@ -16,7 +16,6 @@ return new class extends Migration
             $table->foreignId('hotel_id')->constrained()->restrictOnDelete();
             $table->unsignedBigInteger('external_id')->nullable()->unique();
             $table->string('name');
-            $table->unsignedSmallInteger('capacity')->default(1);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
