@@ -33,6 +33,7 @@ class RunImportsTest extends TestCase
             'imports.files.hotels' => $this->importsPath.'/hotels.xml',
             'imports.files.rooms' => $this->importsPath.'/rooms.xml',
             'imports.files.reservations' => $this->importsPath.'/reserves.xml',
+            'imports.archive_path' => $this->importsPath.'/archive',
         ]);
     }
 
@@ -68,6 +69,7 @@ class RunImportsTest extends TestCase
         $this->assertSame(2, $importRun->rooms_imported);
         $this->assertSame(1, $importRun->reservations_imported);
         $this->assertNotNull($importRun->finished_at);
+        $this->assertArchivedImportFiles($importRun);
     }
 
     public function test_command_is_idempotent_and_refreshes_reservation_children(): void
@@ -123,6 +125,30 @@ class RunImportsTest extends TestCase
         $this->assertSame(2, ImportRun::query()->where('status', ImportRun::StatusCompleted)->count());
     }
 
+    public function test_command_does_not_create_a_run_when_there_are_no_pending_xml_files(): void
+    {
+        $this->artisan('imports:run')
+            ->expectsOutput('Nenhum lote XML aguardando importação.')
+            ->assertExitCode(0);
+
+        $this->assertSame(0, ImportRun::query()->count());
+    }
+
+    public function test_command_records_a_failure_when_an_import_batch_is_incomplete(): void
+    {
+        File::put($this->importsPath.'/hotels.xml', '<Hotels />');
+
+        $this->artisan('imports:run')
+            ->expectsOutput("Falha na importação: Não foi possível ler o arquivo XML [{$this->importsPath}/rooms.xml].")
+            ->assertExitCode(1);
+
+        $importRun = ImportRun::query()->sole();
+
+        $this->assertSame(ImportRun::StatusFailed, $importRun->status);
+        $this->assertFileExists($this->importsPath.'/hotels.xml');
+        $this->assertDirectoryDoesNotExist($this->importsPath.'/archive');
+    }
+
     public function test_command_rolls_back_data_when_a_room_references_an_unknown_hotel(): void
     {
         $this->writeImportFiles(
@@ -146,6 +172,10 @@ class RunImportsTest extends TestCase
         $this->assertSame(ImportRun::StatusFailed, $importRun->status);
         $this->assertSame('O quarto [10] referencia o hotel inexistente [999].', $importRun->error_message);
         $this->assertNotNull($importRun->finished_at);
+        $this->assertFileExists($this->importsPath.'/hotels.xml');
+        $this->assertFileExists($this->importsPath.'/rooms.xml');
+        $this->assertFileExists($this->importsPath.'/reserves.xml');
+        $this->assertDirectoryDoesNotExist($this->importsPath.'/archive');
     }
 
     public function test_command_records_an_issue_when_a_reservation_has_an_invalid_stay_period(): void
@@ -208,6 +238,7 @@ class RunImportsTest extends TestCase
         $this->assertSame(ImportRun::StatusCompletedWithIssues, $importRun->status);
         $this->assertSame('daily_outside_stay_period', $issue->error_code);
         $this->assertStringContainsString('<Reserve id="100"', (string) $issue->raw_payload);
+        $this->assertArchivedImportFiles($importRun);
     }
 
     public function test_command_imports_valid_reservations_when_another_reservation_has_an_issue(): void
@@ -248,6 +279,7 @@ class RunImportsTest extends TestCase
         $this->assertSame(1, $importRun->reservations_imported);
         $this->assertSame('101', $issue->external_identifier);
         $this->assertSame('daily_outside_stay_period', $issue->error_code);
+        $this->assertArchivedImportFiles($importRun);
     }
 
     public function test_command_logs_libxml_details_without_exposing_them_in_the_user_message(): void
@@ -312,5 +344,18 @@ class RunImportsTest extends TestCase
                 </Reserve>
             </Reserves>
             XML);
+    }
+
+    private function assertArchivedImportFiles(ImportRun $importRun): void
+    {
+        $archivePath = $this->importsPath.'/archive/'.$importRun->finished_at->toDateString().'/run-'.$importRun->id;
+
+        $this->assertDirectoryExists($archivePath);
+        $this->assertFileExists($archivePath.'/hotels.xml');
+        $this->assertFileExists($archivePath.'/rooms.xml');
+        $this->assertFileExists($archivePath.'/reserves.xml');
+        $this->assertFileDoesNotExist($this->importsPath.'/hotels.xml');
+        $this->assertFileDoesNotExist($this->importsPath.'/rooms.xml');
+        $this->assertFileDoesNotExist($this->importsPath.'/reserves.xml');
     }
 }

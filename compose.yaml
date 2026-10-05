@@ -19,18 +19,17 @@ services:
       DB_DATABASE: foco_hotel
       DB_USERNAME: foco
       DB_PASSWORD: foco
-      IMPORT_HOTELS_PATH: /var/www/imports/hotels.xml
-      IMPORT_ROOMS_PATH: /var/www/imports/rooms.xml
-      IMPORT_RESERVATIONS_PATH: /var/www/imports/reserves.xml
+      IMPORT_HOTELS_PATH: /var/www/imports/incoming/hotels.xml
+      IMPORT_ROOMS_PATH: /var/www/imports/incoming/rooms.xml
+      IMPORT_RESERVATIONS_PATH: /var/www/imports/incoming/reserves.xml
+      IMPORT_ARCHIVE_PATH: /var/www/imports/archive
       L5_SWAGGER_GENERATE_ALWAYS: "true"
     ports:
       - "${APP_PORT:-8080}:80"
     volumes:
       - ./api:/var/www/html
       - app_vendor:/var/www/html/vendor
-      - ./hotels.xml:/var/www/imports/hotels.xml:ro
-      - ./rooms.xml:/var/www/imports/rooms.xml:ro
-      - ./reserves.xml:/var/www/imports/reserves.xml:ro
+      - ./imports:/var/www/imports:rw
 
   cron:
     image: foco-hotel-api:0.1.0
@@ -49,17 +48,16 @@ services:
       DB_DATABASE: foco_hotel
       DB_USERNAME: foco
       DB_PASSWORD: foco
-      IMPORT_HOTELS_PATH: /var/www/imports/hotels.xml
-      IMPORT_ROOMS_PATH: /var/www/imports/rooms.xml
-      IMPORT_RESERVATIONS_PATH: /var/www/imports/reserves.xml
+      IMPORT_HOTELS_PATH: /var/www/imports/incoming/hotels.xml
+      IMPORT_ROOMS_PATH: /var/www/imports/incoming/rooms.xml
+      IMPORT_RESERVATIONS_PATH: /var/www/imports/incoming/reserves.xml
+      IMPORT_ARCHIVE_PATH: /var/www/imports/archive
       IMPORT_CRON_SCHEDULE: "${IMPORT_CRON_SCHEDULE:-*/5 * * * *}"
     restart: unless-stopped
     volumes:
       - ./api:/var/www/html
       - app_vendor:/var/www/html/vendor
-      - ./hotels.xml:/var/www/imports/hotels.xml:ro
-      - ./rooms.xml:/var/www/imports/rooms.xml:ro
-      - ./reserves.xml:/var/www/imports/reserves.xml:ro
+      - ./imports:/var/www/imports:rw
 
   db:
     image: mysql:8.4.11

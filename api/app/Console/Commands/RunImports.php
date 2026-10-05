@@ -15,6 +15,12 @@ class RunImports extends Command
 {
     public function handle(XmlImportService $importService): int
     {
+        if (! $importService->hasPendingFiles()) {
+            $this->info('Nenhum lote XML aguardando importação.');
+
+            return self::SUCCESS;
+        }
+
         try {
             $importRun = $importService->run();
 

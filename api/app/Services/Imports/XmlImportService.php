@@ -5,6 +5,7 @@ namespace App\Services\Imports;
 use App\Exceptions\Imports\XmlImportException;
 use App\Models\ImportRun;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
@@ -16,6 +17,7 @@ class XmlImportService
         private HotelXmlImporter $hotelImporter,
         private RoomXmlImporter $roomImporter,
         private ReservationXmlImporter $reservationImporter,
+        private ImportFileArchiver $fileArchiver,
     ) {}
 
     public function run(): ImportRun
@@ -52,6 +54,8 @@ class XmlImportService
                 'reservations_imported' => $reservationResult->imported,
                 ...$counts,
             ]);
+
+            $this->fileArchiver->archive($importRun);
         } catch (Throwable $exception) {
             $importRun->update([
                 'status' => ImportRun::StatusFailed,
@@ -74,6 +78,17 @@ class XmlImportService
         }
 
         return $importRun->refresh();
+    }
+
+    public function hasPendingFiles(): bool
+    {
+        foreach (array_keys(config('imports.files', [])) as $source) {
+            if (File::exists($this->pathFor($source))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function pathFor(string $source): string

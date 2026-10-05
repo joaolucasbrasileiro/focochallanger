@@ -23,7 +23,8 @@ for key in \
     DB_PASSWORD \
     IMPORT_HOTELS_PATH \
     IMPORT_ROOMS_PATH \
-    IMPORT_RESERVATIONS_PATH
+    IMPORT_RESERVATIONS_PATH \
+    IMPORT_ARCHIVE_PATH
 do
     value="$(printenv "$key" || true)"
 
