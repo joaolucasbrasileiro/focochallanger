@@ -1,0 +1,4 @@
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+*/5 * * * * www-data /usr/bin/flock -n /tmp/foco-import.lock /bin/sh -c 'cd /var/www/html && /usr/local/bin/php artisan imports:run >> /var/www/html/storage/logs/import-cron.log 2>&1'

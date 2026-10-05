@@ -1,0 +1,81 @@
+# Foco Hotel API
+
+API para importacao de hoteis, quartos e reservas a partir de arquivos XML. A aplicacao roda em Docker e possui um servico `cron` que executa periodicamente o comando Laravel `imports:run`.
+
+## Importacao XML
+
+Os arquivos de origem ficam na raiz do projeto e sao montados como somente leitura nos containers `app` e `cron`:
+
+| Arquivo local | Caminho no container |
+| --- | --- |
+| `hotels.xml` | `/var/www/imports/hotels.xml` |
+| `rooms.xml` | `/var/www/imports/rooms.xml` |
+| `reserves.xml` | `/var/www/imports/reserves.xml` |
+
+Para executar uma importacao manualmente, com os containers ativos, execute a partir da raiz do projeto:
+
+```bash
+docker compose exec -T app php artisan imports:run
+```
+
+O comando retorna codigo `0` quando a importacao termina com sucesso e codigo diferente de zero quando ocorre uma falha. Cada tentativa cria um registro em `import_runs`, com status, horarios, contagens e, quando houver erro, a mensagem registrada.
+
+## Execucao via CRON
+
+O agendamento e executado pelo servico Docker `cron`. Nenhuma configuracao de CRON e necessaria na maquina host; basta possuir Docker Compose.
+
+Suba todos os servicos, incluindo API, banco e agendador:
+
+```bash
+docker compose up -d --build
+```
+
+Confirme que o agendador esta em execucao:
+
+```bash
+docker compose ps
+```
+
+O arquivo versionado `api/docker/cron/foco-imports` define a regra:
+
+```cron
+*/5 * * * * www-data /usr/bin/flock -n /tmp/foco-import.lock /bin/sh -c 'cd /var/www/html && /usr/local/bin/php artisan imports:run >> /var/www/html/storage/logs/import-cron.log 2>&1'
+```
+
+O container `cron` inicia com `cron -f`: o daemon permanece em primeiro plano, permitindo que o Docker o acompanhe. A regra executa a importacao a cada cinco minutos.
+
+- `*/5 * * * *`: frequencia de cinco em cinco minutos.
+- `www-data`: executa o comando com o mesmo usuario usado pela aplicacao PHP.
+- `/usr/bin/flock -n /tmp/foco-import.lock`: impede duas importacoes simultaneas. Se uma execucao anterior ainda estiver ativa, a nova tentativa e ignorada.
+- `cd /var/www/html`: entra na pasta Laravel dentro do container.
+- `/usr/local/bin/php artisan imports:run`: executa o comando de importacao.
+- `>> ... 2>&1`: grava a saida normal e os erros em `storage/logs/import-cron.log`.
+
+O pacote `util-linux`, que fornece `flock`, e instalado na imagem durante o build. O container `cron` nao possui portas publicadas e nao atende requisicoes HTTP.
+
+## Monitoramento e diagnostico
+
+Verifique a saida das execucoes agendadas:
+
+```bash
+tail -f api/storage/logs/import-cron.log
+```
+
+Verifique se o daemon de CRON permanece em execucao:
+
+```bash
+docker compose logs --tail=100 cron
+```
+
+Consulte as ultimas execucoes registradas pela aplicacao:
+
+```bash
+docker compose exec -T db mysql -ufoco -pfoco foco_hotel -e 'SELECT id, status, started_at, finished_at, hotels_imported, rooms_imported, reservations_imported, error_message FROM import_runs ORDER BY id DESC LIMIT 10;'
+```
+
+Em caso de falha:
+
+1. Confirme que os containers estao ativos com `docker compose ps`.
+2. Execute manualmente `docker compose exec -T app php artisan imports:run`.
+3. Consulte `import_runs`, `import-cron.log` e `docker compose logs cron` para identificar a causa.
+4. Corrija o arquivo XML ou a configuracao indicada pelo erro antes da proxima execucao.
