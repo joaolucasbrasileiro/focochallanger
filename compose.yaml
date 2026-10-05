@@ -33,6 +33,7 @@ services:
 
   cron:
     image: foco-hotel-api:0.1.0
+    entrypoint: ["/usr/local/bin/cron-entrypoint"]
     command: ["cron", "-f"]
     depends_on:
       db:
@@ -50,6 +51,7 @@ services:
       IMPORT_HOTELS_PATH: /var/www/imports/hotels.xml
       IMPORT_ROOMS_PATH: /var/www/imports/rooms.xml
       IMPORT_RESERVATIONS_PATH: /var/www/imports/reserves.xml
+      IMPORT_CRON_SCHEDULE: "${IMPORT_CRON_SCHEDULE:-*/5 * * * *}"
     restart: unless-stopped
     volumes:
       - ./api:/var/www/html

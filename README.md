@@ -36,13 +36,33 @@ Confirme que o agendador esta em execucao:
 docker compose ps
 ```
 
-O arquivo versionado `api/docker/cron/foco-imports` define a regra:
+Crie o arquivo `.env` da raiz a partir do exemplo versionado:
 
-```cron
-*/5 * * * * www-data /usr/bin/flock -n /tmp/foco-import.lock /bin/sh -c 'cd /var/www/html && /usr/local/bin/php artisan imports:run >> /var/www/html/storage/logs/import-cron.log 2>&1'
+```bash
+cp .env.example .env
 ```
 
-O container `cron` inicia com `cron -f`: o daemon permanece em primeiro plano, permitindo que o Docker o acompanhe. A regra executa a importacao a cada cinco minutos.
+Defina a frequencia na variavel `IMPORT_CRON_SCHEDULE`, usando uma expressao CRON de cinco campos:
+
+```dotenv
+IMPORT_CRON_SCHEDULE="*/5 * * * *"
+```
+
+| Frequencia | Valor |
+| --- | --- |
+| A cada 5 minutos | `*/5 * * * *` |
+| A cada 30 minutos | `*/30 * * * *` |
+| A cada hora | `0 * * * *` |
+| Todos os dias as 02:00 | `0 2 * * *` |
+| Toda segunda-feira as 08:30 | `30 8 * * 1` |
+
+Depois de alterar a variavel, recrie somente o container do agendador:
+
+```bash
+docker compose up -d --force-recreate cron
+```
+
+O container `cron` inicia com `cron -f`: o daemon permanece em primeiro plano, permitindo que o Docker o acompanhe. Antes disso, `api/docker/cron/entrypoint.sh` le a variavel, valida seus cinco campos e gera a regra em `/etc/cron.d/foco-imports` dentro do container.
 
 - `*/5 * * * *`: frequencia de cinco em cinco minutos.
 - `www-data`: executa o comando com o mesmo usuario usado pela aplicacao PHP.
@@ -50,6 +70,8 @@ O container `cron` inicia com `cron -f`: o daemon permanece em primeiro plano, p
 - `cd /var/www/html`: entra na pasta Laravel dentro do container.
 - `/usr/local/bin/php artisan imports:run`: executa o comando de importacao.
 - `>> ... 2>&1`: grava a saida normal e os erros em `storage/logs/import-cron.log`.
+
+O `.env` da raiz pertence ao Docker Compose e controla a porta da API e o agendamento. Ele e separado de `api/.env`, que pertence ao Laravel e concentra configuracoes da aplicacao, como banco de dados e ambiente. A frequencia e uma configuracao administrativa do deploy, portanto nao existe endpoint publico para altera-la.
 
 O pacote `util-linux`, que fornece `flock`, e instalado na imagem durante o build. O container `cron` nao possui portas publicadas e nao atende requisicoes HTTP.
 
