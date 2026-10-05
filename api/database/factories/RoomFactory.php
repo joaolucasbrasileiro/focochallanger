@@ -22,7 +22,6 @@ class RoomFactory extends Factory
             'hotel_id' => Hotel::factory(),
             'external_id' => fake()->unique()->numberBetween(1, 9_999_999),
             'name' => 'Room '.fake()->unique()->numberBetween(1, 9_999),
-            'capacity' => 1,
             'is_active' => true,
         ];
     }

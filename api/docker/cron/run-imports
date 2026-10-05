@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+
+environment_file="/run/foco-import.env"
+
+while IFS= read -r environment; do
+    export "$environment"
+done < "$environment_file"
+
+exec /usr/sbin/runuser -u www-data -- /bin/sh -c 'cd /var/www/html && /usr/local/bin/php artisan imports:run >> /var/www/html/storage/logs/import-cron.log 2>&1'

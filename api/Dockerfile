@@ -18,8 +18,11 @@ COPY . .
 COPY docker/apache/000-default.conf /etc/apache2/sites-available/000-default.conf
 COPY docker/apache/server-name.conf /etc/apache2/conf-available/server-name.conf
 COPY docker/cron/entrypoint.sh /usr/local/bin/cron-entrypoint
+COPY docker/cron/run-imports /usr/local/bin/run-imports
 
 RUN composer dump-autoload --optimize \
     && a2enconf server-name \
+    && php artisan l5-swagger:generate \
     && chmod 0755 /usr/local/bin/cron-entrypoint \
+    && chmod 0755 /usr/local/bin/run-imports \
     && chown -R www-data:www-data bootstrap/cache storage

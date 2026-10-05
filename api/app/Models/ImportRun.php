@@ -6,6 +6,7 @@ use Database\Factories\ImportRunFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'status',
@@ -25,7 +26,14 @@ class ImportRun extends Model
 
     public const StatusCompleted = 'completed';
 
+    public const StatusCompletedWithIssues = 'completed_with_issues';
+
     public const StatusFailed = 'failed';
+
+    public function issues(): HasMany
+    {
+        return $this->hasMany(ImportIssue::class);
+    }
 
     /**
      * @return array<string, string>

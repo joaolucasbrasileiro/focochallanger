@@ -3,6 +3,7 @@
 namespace Tests\Feature\Console\Commands;
 
 use App\Models\Hotel;
+use App\Models\ImportIssue;
 use App\Models\ImportRun;
 use App\Models\Reservation;
 use App\Models\ReservationDaily;
@@ -147,7 +148,7 @@ class RunImportsTest extends TestCase
         $this->assertNotNull($importRun->finished_at);
     }
 
-    public function test_command_rolls_back_data_when_a_reservation_has_an_invalid_stay_period(): void
+    public function test_command_records_an_issue_when_a_reservation_has_an_invalid_stay_period(): void
     {
         $this->writeImportFiles(
             reserves: <<<'XML'
@@ -162,18 +163,22 @@ class RunImportsTest extends TestCase
         );
 
         $this->artisan('imports:run')
-            ->expectsOutput('Falha na importação: A data de check-out da reserva [100] deve ser posterior à data de check-in.')
-            ->assertExitCode(1);
+            ->assertExitCode(0);
 
         $importRun = ImportRun::query()->sole();
+        $issue = ImportIssue::query()->sole();
 
-        $this->assertSame(0, Hotel::query()->count());
-        $this->assertSame(0, Room::query()->count());
+        $this->assertSame(2, Hotel::query()->count());
+        $this->assertSame(2, Room::query()->count());
         $this->assertSame(0, Reservation::query()->count());
-        $this->assertSame(ImportRun::StatusFailed, $importRun->status);
+        $this->assertSame(ImportRun::StatusCompletedWithIssues, $importRun->status);
+        $this->assertSame(ImportIssue::SourceReservation, $issue->source);
+        $this->assertSame('100', $issue->external_identifier);
+        $this->assertSame('invalid_stay_period', $issue->error_code);
+        $this->assertSame(ImportIssue::StatusIncomplete, $issue->status);
     }
 
-    public function test_command_rolls_back_data_when_a_daily_is_outside_the_reservation_period(): void
+    public function test_command_records_an_issue_when_a_daily_is_outside_the_reservation_period(): void
     {
         $this->writeImportFiles(
             reserves: <<<'XML'
@@ -191,16 +196,58 @@ class RunImportsTest extends TestCase
         );
 
         $this->artisan('imports:run')
-            ->expectsOutput('Falha na importação: A reserva [100] possui uma diária em [2022-12-03] fora do período de hospedagem.')
-            ->assertExitCode(1);
+            ->assertExitCode(0);
 
         $importRun = ImportRun::query()->sole();
+        $issue = ImportIssue::query()->sole();
 
-        $this->assertSame(0, Hotel::query()->count());
-        $this->assertSame(0, Room::query()->count());
+        $this->assertSame(2, Hotel::query()->count());
+        $this->assertSame(2, Room::query()->count());
         $this->assertSame(0, Reservation::query()->count());
         $this->assertSame(0, ReservationDaily::query()->count());
-        $this->assertSame(ImportRun::StatusFailed, $importRun->status);
+        $this->assertSame(ImportRun::StatusCompletedWithIssues, $importRun->status);
+        $this->assertSame('daily_outside_stay_period', $issue->error_code);
+        $this->assertStringContainsString('<Reserve id="100"', (string) $issue->raw_payload);
+    }
+
+    public function test_command_imports_valid_reservations_when_another_reservation_has_an_issue(): void
+    {
+        $this->writeImportFiles(
+            reserves: <<<'XML'
+                <Reserves>
+                    <Reserve id="100" hotelCode="1" roomCode="10">
+                        <CheckIn>2022-12-01</CheckIn>
+                        <CheckOut>2022-12-03</CheckOut>
+                        <Total>300.00</Total>
+                        <Dailies>
+                            <Daily><Date>2022-12-01</Date><Value>150.00</Value></Daily>
+                            <Daily><Date>2022-12-02</Date><Value>150.00</Value></Daily>
+                        </Dailies>
+                    </Reserve>
+                    <Reserve id="101" hotelCode="1" roomCode="10">
+                        <CheckIn>2022-12-01</CheckIn>
+                        <CheckOut>2022-12-03</CheckOut>
+                        <Total>300.00</Total>
+                        <Dailies>
+                            <Daily><Date>2022-12-03</Date><Value>300.00</Value></Daily>
+                        </Dailies>
+                    </Reserve>
+                </Reserves>
+                XML,
+        );
+
+        $this->artisan('imports:run')
+            ->assertExitCode(0);
+
+        $importRun = ImportRun::query()->sole();
+        $issue = ImportIssue::query()->sole();
+
+        $this->assertSame(1, Reservation::query()->count());
+        $this->assertSame(100, Reservation::query()->sole()->external_id);
+        $this->assertSame(ImportRun::StatusCompletedWithIssues, $importRun->status);
+        $this->assertSame(1, $importRun->reservations_imported);
+        $this->assertSame('101', $issue->external_identifier);
+        $this->assertSame('daily_outside_stay_period', $issue->error_code);
     }
 
     public function test_command_logs_libxml_details_without_exposing_them_in_the_user_message(): void

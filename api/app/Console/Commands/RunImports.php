@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\ImportRun;
 use App\Services\Imports\XmlImportService;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -20,6 +21,12 @@ class RunImports extends Command
             $this->info("Importação concluída (execução {$importRun->id}): {$importRun->hotels_imported} hotéis,
             {$importRun->rooms_imported} quartos,
             {$importRun->reservations_imported} reservas.");
+
+            if ($importRun->status === ImportRun::StatusCompletedWithIssues) {
+                $issues = $importRun->issues()->count();
+
+                $this->warn("A execução foi concluída com {$issues} pendência(s) de importação.");
+            }
 
             return self::SUCCESS;
         } catch (Throwable $exception) {

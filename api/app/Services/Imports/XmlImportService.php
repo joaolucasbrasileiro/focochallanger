@@ -26,26 +26,30 @@ class XmlImportService
         ]);
 
         try {
-            $counts = DB::transaction(function (): array {
-                // pega o pathFor com o padrão configurado para o docker e acrescenta a var (ex:hotels)
-                // apontando assim para o xml específico desejado, depois é carregado pelo XmlDocumentLoader
-                // por fim armazenado na var em formato de objeto xml (SimplXMElement)
-                $hotels = $this->documentLoader->load($this->pathFor('hotels'));
-                $rooms = $this->documentLoader->load($this->pathFor('rooms'));
-                $reservations = $this->documentLoader->load($this->pathFor('reservations'));
+            // pega o pathFor com o padrão configurado para o docker e acrescenta a var (ex:hotels)
+            // apontando assim para o xml específico desejado, depois é carregado pelo XmlDocumentLoader
+            // por fim armazenado na var em formato de objeto xml (SimplXMElement)
+            $hotels = $this->documentLoader->load($this->pathFor('hotels'));
+            $rooms = $this->documentLoader->load($this->pathFor('rooms'));
+            $reservations = $this->documentLoader->load($this->pathFor('reservations'));
 
+            $counts = DB::transaction(function () use ($hotels, $rooms): array {
                 // esse retorno é o valor/quantidade de elemento que foi processado/improtado
                 // ficando salvo tabela ImportRun
                 return [
                     'hotels_imported' => $this->hotelImporter->import($hotels),
                     'rooms_imported' => $this->roomImporter->import($rooms),
-                    'reservations_imported' => $this->reservationImporter->import($reservations),
                 ];
             });
 
+            $reservationResult = $this->reservationImporter->import($reservations, $importRun);
+
             $importRun->update([
-                'status' => ImportRun::StatusCompleted,
+                'status' => $reservationResult->rejected > 0
+                    ? ImportRun::StatusCompletedWithIssues
+                    : ImportRun::StatusCompleted,
                 'finished_at' => now(),
+                'reservations_imported' => $reservationResult->imported,
                 ...$counts,
             ]);
         } catch (Throwable $exception) {
