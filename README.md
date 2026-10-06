@@ -1,111 +1,191 @@
 # Foco Hotel API
 
-API para importacao de hoteis, quartos e reservas a partir de arquivos XML. A aplicacao roda em Docker e possui um servico `cron` que executa periodicamente o comando Laravel `imports:run`.
+API REST desenvolvida em Laravel para importar dados de hotelaria por XML, gerenciar quartos, consultar disponibilidade e criar reservas.
 
-## Importacao XML
+O ambiente utiliza Docker para executar a API, o MySQL e o CRON. Os endpoints sao versionados em `/api/v1`, respondem em JSON e possuem documentacao OpenAPI 3.0.0.
 
-Os XMLs aguardando processamento ficam em `imports/incoming`. O diretorio completo `imports` e montado com leitura e escrita nos containers `app` e `cron`; portanto, os arquivos adicionados no host ficam disponiveis no container sem reinicio.
+## Tecnologias
 
-| Arquivo local de entrada | Caminho no container |
-| --- | --- |
-| `imports/incoming/hotels.xml` | `/var/www/imports/incoming/hotels.xml` |
-| `imports/incoming/rooms.xml` | `/var/www/imports/incoming/rooms.xml` |
-| `imports/incoming/reserves.xml` | `/var/www/imports/incoming/reserves.xml` |
+- PHP 8.4 com Apache;
+- Laravel 13 e Laravel Sanctum;
+- MySQL 8.4;
+- PHPUnit;
+- Swagger/OpenAPI 3.0.0;
+- Docker Compose.
 
-Cada lote deve conter os tres arquivos, com esses nomes. Eles precisam estar presentes antes da proxima janela do CRON. Um lote com apenas parte dos arquivos e tratado como erro e permanece em `incoming`, para que seja completado ou corrigido.
+## Pre-requisitos
 
-Para enviar o proximo lote, copie os tres arquivos para essa pasta:
+- Git;
+- Docker Desktop ou Docker Engine;
+- Docker Compose v2.
+
+Nao e necessario instalar PHP, Composer, Apache, MySQL ou CRON diretamente na maquina.
+
+## Configuracao inicial
+
+Execute os comandos a partir da raiz do projeto.
+
+### 1. Crie os arquivos de ambiente
 
 ```bash
-cp /caminho/do/lote/hotels.xml imports/incoming/hotels.xml
-cp /caminho/do/lote/rooms.xml imports/incoming/rooms.xml
-cp /caminho/do/lote/reserves.xml imports/incoming/reserves.xml
+cp api/.env.example api/.env
+cp .env.example .env
 ```
 
-Ao terminar uma importacao com sucesso, os arquivos de entrada sao movidos para um diretorio de auditoria:
+O `api/.env` pertence ao Laravel e e obrigatorio. O `.env` da raiz pertence ao Docker Compose e e opcional, pois possui valores padrao:
+
+```dotenv
+APP_PORT=8080
+IMPORT_CRON_SCHEDULE="*/5 * * * *"
+```
+
+### 2. Suba o banco e a API
+
+```bash
+docker compose up -d --build db app
+```
+
+### 3. Gere a chave do Laravel
+
+Execute somente na primeira configuracao:
+
+```bash
+docker compose exec -T app php artisan key:generate --force
+```
+
+### 4. Execute as migrations
+
+```bash
+docker compose exec -T app php artisan migrate --force --no-interaction
+```
+
+As migrations sao executadas manualmente. O comando aplica somente migrations pendentes e nao apaga os dados existentes.
+
+### 5. Prepare e importe os XMLs iniciais
+
+Antes da importacao, os tres arquivos precisam estar em `imports/incoming` com os nomes esperados pela aplicacao:
 
 ```text
-imports/archive/YYYY-MM-DD/run-{import_run_id}/
+imports/incoming/hotels.xml
+imports/incoming/rooms.xml
+imports/incoming/reserves.xml
 ```
 
-Exemplo:
+Se os XMLs oficiais estiverem na raiz do projeto, copie-os para a caixa de entrada:
 
-```text
-imports/archive/2026-10-05/run-9/
-  hotels.xml
-  rooms.xml
-  reserves.xml
+```bash
+cp hotels.xml imports/incoming/hotels.xml
+cp rooms.xml imports/incoming/rooms.xml
+cp reserves.xml imports/incoming/reserves.xml
 ```
 
-O identificador da execucao evita sobrescrever lotes processados no mesmo dia. O conteudo de `imports/archive` nao e versionado pelo Git, pois representa dados operacionais e pode conter dados de hospedes.
-
-O fluxo da importacao e:
-
-1. Sem arquivos em `incoming`: o comando termina com sucesso e nao cria um registro em `import_runs`.
-2. Lote incompleto ou XML estruturalmente invalido: a execucao e marcada como `failed` e os arquivos permanecem em `incoming`.
-3. Lote valido: a execucao fica `completed`, e os tres arquivos sao arquivados.
-4. Reserva invalida em um lote valido: a execucao fica `completed_with_issues`; reservas validas sao persistidas, a reserva defeituosa e registrada em `import_issues`, e os tres arquivos tambem sao arquivados.
-
-Para executar uma importacao manualmente, com os containers ativos, execute a partir da raiz do projeto:
+Depois, execute a importacao:
 
 ```bash
 docker compose exec -T app php artisan imports:run
 ```
 
-O comando retorna codigo `0` quando nao existe lote pendente ou quando a importacao termina com sucesso, inclusive com pendencias de reservas. Retorna codigo diferente de zero em caso de falha estrutural. As execucoes processadas criam registros em `import_runs`, com status, horarios, contagens e, quando houver erro, a mensagem registrada.
+A reserva externa `6` possui uma diaria inconsistente e sera registrada em `import_issues`; os demais dados validos serao importados.
 
-## Pendencias de importacao
+### 6. Crie a primeira conta administradora
 
-Uma reserva invalida nunca e inserida em `reservations` e, por isso, nao interfere na disponibilidade. Ela e guardada em `import_issues`, vinculada a execucao que a recebeu. O registro preserva a origem, o identificador externo, o codigo e a mensagem do erro, alem do trecho XML original.
-
-As pendencias e execucoes tambem podem ser consultadas pela API apos autenticacao:
-
-| Metodo | Endpoint | Finalidade |
-| --- | --- | --- |
-| `GET` | `/api/v1/import-runs` | Lista execucoes e suas contagens de pendencias. |
-| `GET` | `/api/v1/import-runs/{importRun}` | Consulta uma execucao especifica. |
-| `GET` | `/api/v1/import-issues` | Lista pendencias; aceita filtros como `import_run_id`, `source` e `status`. |
-| `GET` | `/api/v1/import-issues/{importIssue}` | Consulta uma pendencia, incluindo o XML original. |
-
-A documentacao interativa esta disponivel em `http://localhost:8080/api/documentation` quando os containers estiverem em execucao.
-
-## Autenticacao e autorizacao
-
-A API utiliza Laravel Sanctum com tokens Bearer. As rotas de consulta de hoteis e disponibilidade continuam publicas para permitir integracoes externas:
-
-```text
-GET /api/v1/hotels
-GET /api/v1/hotels/{hotel}/availability
-POST /api/v1/register
-POST /api/v1/auth/login
-```
-
-As operacoes de quartos, reservas, importacoes e gestao de usuarios exigem autenticacao. O mesmo usuario pode possuir papeis diferentes em cada hotel por meio de `hotel_memberships`.
-
-| Papel | Permissoes |
-| --- | --- |
-| `admin` | Todas as permissoes, incluindo gestao de usuarios. |
-| `manager` | Consulta e gestao de quartos, criacao de reservas, pagamentos, relatorios financeiros e importacoes. |
-| `receptionist` | Consulta de quartos, criacao de reservas e pagamentos de reservas do hotel. |
-
-O cadastro publico cria somente a conta, sem vincula-la a qualquer hotel. Enquanto nao possuir registros em `hotel_memberships`, o usuario e considerado comum e possui somente o mesmo acesso publico de um visitante:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/register \
-  -H 'Accept: application/json' \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"Joao Silva","email":"joao@foco.test","password":"password123","password_confirmation":"password123","device_name":"Postman"}'
-```
-
-O cadastro ja retorna um token Sanctum, mas o usuario comum nao pode acessar quartos, reservas, importacoes ou gestao de usuarios. Um administrador escolhe o hotel e o papel ao vincular o usuario existente por e-mail em `POST /api/v1/hotels/{hotel}/users`.
-
-Depois que os hoteis forem importados, crie o primeiro administrador. O comando solicita a senha sem exibi-la no terminal:
+O cadastro publico nao permite escolher o papel `admin`. Depois de importar os hoteis, crie a primeira conta administradora pelo comando abaixo. O numero `1` representa o ID interno do hotel ao qual o administrador sera vinculado:
 
 ```bash
 docker compose exec app php artisan users:create-admin 1 admin@foco.test --name="Administrador"
 ```
 
-Autentique o usuario:
+A senha sera solicitada de forma segura no terminal.
+
+### 7. Inicie o CRON
+
+```bash
+docker compose up -d cron
+```
+
+### 8. Verifique o ambiente
+
+```bash
+docker compose ps
+curl -H 'Accept: application/json' http://localhost:8080/api/v1/hotels
+```
+
+Servicos executados:
+
+| Servico | Finalidade |
+| --- | --- |
+| `app` | API Laravel executada pelo Apache. |
+| `db` | Banco MySQL persistido no volume `db_data`. |
+| `cron` | Importacao XML agendada. |
+
+## Importacao XML
+
+Cada lote deve possuir os arquivos:
+
+```text
+imports/incoming/hotels.xml
+imports/incoming/rooms.xml
+imports/incoming/reserves.xml
+```
+
+A pasta `imports` e compartilhada com os containers. Novos arquivos podem ser adicionados sem reiniciar a aplicacao.
+
+Executar manualmente:
+
+```bash
+docker compose exec -T app php artisan imports:run
+```
+
+O importador atualiza registros pelo `external_id`, persiste as reservas validas e registra reservas rejeitadas em `import_issues`. Uma reserva invalida nao entra em `reservations` e nao afeta a disponibilidade.
+
+Status possiveis de `import_runs`:
+
+| Status | Significado |
+| --- | --- |
+| `completed` | Lote importado sem pendencias. |
+| `completed_with_issues` | Lote concluido com reservas rejeitadas. |
+| `failed` | Falha estrutural ou lote incompleto. |
+
+Depois do processamento, o lote concluido e movido para:
+
+```text
+imports/archive/YYYY-MM-DD/run-{import_run_id}/
+```
+
+## Configuracao do CRON
+
+O CRON roda dentro do container `cron`; nao e necessario configurar o sistema operacional da maquina.
+
+A frequencia e definida no `.env` da raiz:
+
+```dotenv
+IMPORT_CRON_SCHEDULE="*/5 * * * *"
+```
+
+| Frequencia | Expressao |
+| --- | --- |
+| A cada 5 minutos | `*/5 * * * *` |
+| A cada 30 minutos | `*/30 * * * *` |
+| A cada hora | `0 * * * *` |
+| Todos os dias as 02:00 | `0 2 * * *` |
+
+Depois de alterar a frequencia:
+
+```bash
+docker compose up -d --force-recreate cron
+```
+
+O agendador utiliza `flock` para impedir duas importacoes simultaneas.
+
+## Autenticacao e permissoes
+
+A API utiliza tokens Bearer do Laravel Sanctum.
+
+### Primeiro administrador
+
+A primeira conta administradora deve ser criada pelo comando Artisan apresentado na [configuracao inicial](#6-crie-a-primeira-conta-administradora). Depois disso, esse administrador pode vincular outros usuarios aos hoteis por meio da API.
+
+Login:
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/auth/login \
@@ -114,130 +194,158 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
   -d '{"email":"admin@foco.test","password":"sua-senha","device_name":"Postman"}'
 ```
 
-O token e exibido apenas nessa resposta. Envie-o nas rotas protegidas:
+Utilize `data.access_token` nas rotas protegidas:
 
 ```bash
-curl http://localhost:8080/api/v1/auth/me \
-  -H 'Accept: application/json' \
-  -H 'Authorization: Bearer SEU_TOKEN'
+export TOKEN='SEU_TOKEN'
 ```
 
-O token expira por padrao em 480 minutos, conforme `SANCTUM_EXPIRATION` em `api/.env`. Para revogar somente o token atual:
+Papeis disponiveis por hotel:
 
-```text
-DELETE /api/v1/auth/logout
-```
-
-Somente um `admin` do hotel pode listar, criar, alterar ou remover vinculos de usuarios em `/api/v1/hotels/{hotel}/users`. O sistema impede que o ultimo administrador de um hotel seja removido ou rebaixado.
-
-## Pagamentos e receita por diaria
-
-Os pagamentos informados no XML representam valores recebidos para a reserva. O saldo e calculado sem armazenar um status redundante:
-
-```text
-saldo pendente = total da reserva - soma dos pagamentos
-```
-
-Uma recepcionista, manager ou admin do hotel pode consultar a situacao financeira de uma reserva:
-
-```text
-GET /api/v1/reservations/{reservation}/payments
-```
-
-A resposta classifica a reserva como `unpaid`, `partially_paid`, `paid` ou `overpaid` e apresenta valores esperado, recebido, pendente e excedente. O codigo de metodo e preservado conforme o XML; como o arquivo nao informa a data do pagamento, a API nao atribui uma data artificial.
-
-Managers e admins podem consultar a receita de hospedagem por `reservation_dailies.daily_date`:
-
-```text
-GET /api/v1/hotels/{hotel}/revenue-reports?from=2026-01-01&to=2026-12-31&group_by=month
-```
-
-`group_by` aceita `day`, `month`, `quarter`, `semester` ou `year`. A receita do periodo e a soma das diarias; o resumo de pagamentos considera cada reserva com diarias no intervalo uma unica vez. Portanto, ele demonstra a cobertura financeira dessas reservas e nao um fluxo de caixa por data de recebimento.
-
-## Execucao via CRON
-
-O agendamento e executado pelo servico Docker `cron`. Nenhuma configuracao de CRON e necessaria na maquina host; basta possuir Docker Compose.
-
-Suba todos os servicos, incluindo API, banco e agendador:
-
-```bash
-docker compose up -d --build
-```
-
-Confirme que o agendador esta em execucao:
-
-```bash
-docker compose ps
-```
-
-Crie o arquivo `.env` da raiz a partir do exemplo versionado:
-
-```bash
-cp .env.example .env
-```
-
-Defina a frequencia na variavel `IMPORT_CRON_SCHEDULE`, usando uma expressao CRON de cinco campos:
-
-```dotenv
-IMPORT_CRON_SCHEDULE="*/5 * * * *"
-```
-
-| Frequencia | Valor |
+| Papel | Acesso principal |
 | --- | --- |
-| A cada 5 minutos | `*/5 * * * *` |
-| A cada 30 minutos | `*/30 * * * *` |
-| A cada hora | `0 * * * *` |
-| Todos os dias as 02:00 | `0 2 * * *` |
-| Toda segunda-feira as 08:30 | `30 8 * * 1` |
+| `admin` | Todas as permissoes e gestao de usuarios. |
+| `manager` | Quartos, reservas, importacoes e relatorios. |
+| `receptionist` | Consulta de quartos, reservas e pagamentos. |
 
-Depois de alterar a variavel, recrie somente o container do agendador:
+`POST /api/v1/register` cria um usuario sem vinculo com hotel. Um administrador deve posteriormente definir seu hotel e papel.
 
-```bash
-docker compose up -d --force-recreate cron
+## Utilizacao da API
+
+### Rotas publicas
+
+```text
+POST /api/v1/register
+POST /api/v1/auth/login
+GET  /api/v1/hotels
+GET  /api/v1/hotels/{hotel}/availability
 ```
 
-O container `cron` inicia com `cron -f`: o daemon permanece em primeiro plano, permitindo que o Docker o acompanhe. Antes disso, `api/docker/cron/entrypoint.sh` le a variavel, valida seus cinco campos e gera a regra em `/etc/cron.d/foco-imports` dentro do container.
-
-- `*/5 * * * *`: frequencia de cinco em cinco minutos.
-- `/usr/bin/flock -n /tmp/foco-import.lock`: impede duas importacoes simultaneas. Se uma execucao anterior ainda estiver ativa, a nova tentativa e ignorada.
-- `/usr/local/bin/run-imports`: carrega as variaveis necessarias, executa o Laravel como `www-data` e registra a saida.
-- `cd /var/www/html`: entra na pasta Laravel dentro do container.
-- `/usr/local/bin/php artisan imports:run`: executa o comando de importacao.
-- `>> ... 2>&1`: grava a saida normal e os erros em `storage/logs/import-cron.log`.
-
-O `.env` da raiz pertence ao Docker Compose e controla a porta da API e o agendamento. Ele e separado de `api/.env`, que pertence ao Laravel e concentra configuracoes da aplicacao, como banco de dados e ambiente. A frequencia e uma configuracao administrativa do deploy, portanto nao existe endpoint publico para altera-la.
-
-O pacote `util-linux`, que fornece `flock`, e instalado na imagem durante o build. O container `cron` nao possui portas publicadas e nao atende requisicoes HTTP.
-
-## Monitoramento e diagnostico
-
-Verifique a saida das execucoes agendadas:
+### Consultar disponibilidade
 
 ```bash
+curl 'http://localhost:8080/api/v1/hotels/1/availability?check_in=2026-11-10&check_out=2026-11-12' \
+  -H 'Accept: application/json'
+```
+
+A resposta agrupa quartos ativos pelo nome e informa `total_units` e `available_units`.
+
+### CRUD de quartos
+
+| Metodo | Endpoint | Operacao |
+| --- | --- | --- |
+| `GET` | `/api/v1/rooms` | Listar quartos. |
+| `POST` | `/api/v1/rooms` | Cadastrar quarto. |
+| `GET` | `/api/v1/rooms/{room}` | Consultar quarto. |
+| `PUT/PATCH` | `/api/v1/rooms/{room}` | Atualizar quarto. |
+| `DELETE` | `/api/v1/rooms/{room}` | Excluir quarto sem reservas. |
+
+Cadastrar um quarto:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/rooms \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"hotel_id":1,"name":"Standard Casal","is_active":true}'
+```
+
+As URLs utilizam o ID interno do banco. O `external_id` identifica dados originados dos XMLs.
+
+### Criar uma reserva
+
+```bash
+curl -X POST http://localhost:8080/api/v1/reservations \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "hotel_id": 1,
+    "room_name": "Standard Casal",
+    "check_in": "2026-11-10",
+    "check_out": "2026-11-12",
+    "guests": [
+      {"first_name":"Maria","last_name":"Souza","phone":"5571999999999"}
+    ],
+    "dailies": [
+      {"daily_date":"2026-11-10","amount":"200.00"},
+      {"daily_date":"2026-11-11","amount":"200.00"}
+    ]
+  }'
+```
+
+As diarias devem cobrir todo o periodo. O total e calculado pela soma das diarias, e a API seleciona uma unidade disponivel.
+
+### Outros endpoints
+
+| Metodo | Endpoint | Finalidade |
+| --- | --- | --- |
+| `GET` | `/api/v1/reservations/{reservation}/payments` | Pagamentos e saldo da reserva. |
+| `GET` | `/api/v1/hotels/{hotel}/revenue-reports` | Relatorio financeiro. |
+| `GET` | `/api/v1/import-runs` | Execucoes de importacao. |
+| `GET` | `/api/v1/import-issues` | Pendencias de importacao. |
+| Varios | `/api/v1/hotels/{hotel}/users` | Usuarios e papeis do hotel. |
+
+Os parametros e respostas completos estao no Swagger.
+
+## Swagger/OpenAPI
+
+```text
+http://localhost:8080/api/documentation
+```
+
+Para testar rotas protegidas, clique em `Authorize` e informe o token retornado pelo login.
+
+Regenerar a documentacao:
+
+```bash
+docker compose exec -T app php artisan l5-swagger:generate
+```
+
+## Banco de dados
+
+As migrations versionam a estrutura do banco. Relacionamentos principais:
+
+```text
+hotels -> rooms -> reservations
+reservations -> guests, dailies e payments
+import_runs -> import_issues
+users <-> hotels por hotel_memberships
+```
+
+Conexao local pelo MySQL Workbench:
+
+| Campo | Valor |
+| --- | --- |
+| Host | `127.0.0.1` |
+| Porta | `3306` |
+| Database | `foco_hotel` |
+| Usuario | `foco` |
+| Senha | `foco` |
+
+## Testes
+
+```bash
+docker compose exec -T app php artisan test
+docker compose exec -T app ./vendor/bin/pint --test
+```
+
+## Logs e comandos uteis
+
+```bash
+# Logs da aplicacao e do CRON
+tail -f api/storage/logs/laravel.log
 tail -f api/storage/logs/import-cron.log
-```
-
-Verifique se o daemon de CRON permanece em execucao:
-
-```bash
 docker compose logs --tail=100 cron
+
+# Status das migrations
+docker compose exec -T app php artisan migrate:status
+
+# Subir ou parar o ambiente
+docker compose up -d --build
+docker compose down
 ```
 
-Consulte as ultimas execucoes registradas pela aplicacao:
+Ao atualizar para uma versao com migrations novas, pare o CRON, atualize a API, aplique `php artisan migrate` e inicie o CRON novamente. Em ambientes com dados importantes, realize backup antes da migracao.
 
-```bash
-docker compose exec -T db mysql -ufoco -pfoco foco_hotel -e 'SELECT id, status, started_at, finished_at, hotels_imported, rooms_imported, reservations_imported, error_message FROM import_runs ORDER BY id DESC LIMIT 10;'
-```
-
-Liste os lotes arquivados:
-
-```bash
-find imports/archive -maxdepth 3 -type f | sort
-```
-
-Em caso de falha:
-
-1. Confirme que os containers estao ativos com `docker compose ps`.
-2. Execute manualmente `docker compose exec -T app php artisan imports:run`.
-3. Consulte `import_runs`, `import-cron.log` e `docker compose logs cron` para identificar a causa.
-4. Corrija o arquivo XML ou a configuracao indicada pelo erro antes da proxima execucao. Os lotes com falha continuam em `imports/incoming`.
+`docker compose down` preserva os volumes. `docker compose down -v` tambem remove os volumes e apaga o banco de dados.
