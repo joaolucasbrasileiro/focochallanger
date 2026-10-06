@@ -279,4 +279,78 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'updated_at', type: 'string', format: 'date-time'),
     ],
 )]
+#[OA\Schema(
+    schema: 'ReservationFinancialSummary',
+    required: ['expected_amount', 'received_amount', 'outstanding_amount', 'overpaid_amount', 'coverage_percentage', 'status'],
+    properties: [
+        new OA\Property(property: 'expected_amount', type: 'string', example: '300.00'),
+        new OA\Property(property: 'received_amount', type: 'string', example: '100.00'),
+        new OA\Property(property: 'outstanding_amount', type: 'string', example: '200.00'),
+        new OA\Property(property: 'overpaid_amount', type: 'string', example: '0.00'),
+        new OA\Property(property: 'coverage_percentage', type: 'string', example: '33.33'),
+        new OA\Property(property: 'status', type: 'string', enum: ['unpaid', 'partially_paid', 'paid', 'overpaid'], example: 'partially_paid'),
+    ],
+)]
+#[OA\Schema(
+    schema: 'ReservationPaymentSummary',
+    required: ['reservation', 'financial', 'payments'],
+    properties: [
+        new OA\Property(
+            property: 'reservation',
+            type: 'object',
+            properties: [
+                new OA\Property(property: 'id', type: 'integer', example: 1),
+                new OA\Property(property: 'external_id', type: 'integer', nullable: true, example: 100),
+                new OA\Property(property: 'hotel_id', type: 'integer', example: 1),
+                new OA\Property(property: 'room_id', type: 'integer', example: 10),
+                new OA\Property(property: 'check_in', type: 'string', format: 'date'),
+                new OA\Property(property: 'check_out', type: 'string', format: 'date'),
+            ],
+        ),
+        new OA\Property(property: 'financial', ref: '#/components/schemas/ReservationFinancialSummary'),
+        new OA\Property(
+            property: 'payments',
+            type: 'array',
+            items: new OA\Items(
+                type: 'object',
+                properties: [
+                    new OA\Property(property: 'id', type: 'integer', example: 1),
+                    new OA\Property(property: 'method_code', type: 'string', example: '1'),
+                    new OA\Property(property: 'amount', type: 'string', example: '100.00'),
+                ],
+            ),
+        ),
+    ],
+)]
+#[OA\Schema(
+    schema: 'HotelRevenueReport',
+    required: ['hotel', 'period', 'summary', 'groups'],
+    properties: [
+        new OA\Property(property: 'hotel', ref: '#/components/schemas/HotelSummary'),
+        new OA\Property(
+            property: 'period',
+            type: 'object',
+            properties: [
+                new OA\Property(property: 'from', type: 'string', format: 'date'),
+                new OA\Property(property: 'to', type: 'string', format: 'date'),
+                new OA\Property(property: 'group_by', type: 'string', enum: ['day', 'month', 'quarter', 'semester', 'year']),
+            ],
+        ),
+        new OA\Property(property: 'summary', type: 'object', additionalProperties: new OA\AdditionalProperties),
+        new OA\Property(
+            property: 'groups',
+            type: 'array',
+            items: new OA\Items(
+                type: 'object',
+                properties: [
+                    new OA\Property(property: 'period', type: 'string', example: '2026-01'),
+                    new OA\Property(property: 'lodging_revenue', type: 'string', example: '12500.00'),
+                    new OA\Property(property: 'occupied_room_nights', type: 'integer', example: 62),
+                    new OA\Property(property: 'reservations_count', type: 'integer', example: 20),
+                    new OA\Property(property: 'average_daily_rate', type: 'string', example: '201.61'),
+                ],
+            ),
+        ),
+    ],
+)]
 class Schemas {}

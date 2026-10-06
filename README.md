@@ -85,8 +85,8 @@ As operacoes de quartos, reservas, importacoes e gestao de usuarios exigem auten
 | Papel | Permissoes |
 | --- | --- |
 | `admin` | Todas as permissoes, incluindo gestao de usuarios. |
-| `manager` | Consulta e gestao de quartos, criacao de reservas e consulta de importacoes. |
-| `receptionist` | Consulta de quartos e criacao de reservas. |
+| `manager` | Consulta e gestao de quartos, criacao de reservas, pagamentos, relatorios financeiros e importacoes. |
+| `receptionist` | Consulta de quartos, criacao de reservas e pagamentos de reservas do hotel. |
 
 O cadastro publico cria somente a conta, sem vincula-la a qualquer hotel. Enquanto nao possuir registros em `hotel_memberships`, o usuario e considerado comum e possui somente o mesmo acesso publico de um visitante:
 
@@ -129,6 +129,30 @@ DELETE /api/v1/auth/logout
 ```
 
 Somente um `admin` do hotel pode listar, criar, alterar ou remover vinculos de usuarios em `/api/v1/hotels/{hotel}/users`. O sistema impede que o ultimo administrador de um hotel seja removido ou rebaixado.
+
+## Pagamentos e receita por diaria
+
+Os pagamentos informados no XML representam valores recebidos para a reserva. O saldo e calculado sem armazenar um status redundante:
+
+```text
+saldo pendente = total da reserva - soma dos pagamentos
+```
+
+Uma recepcionista, manager ou admin do hotel pode consultar a situacao financeira de uma reserva:
+
+```text
+GET /api/v1/reservations/{reservation}/payments
+```
+
+A resposta classifica a reserva como `unpaid`, `partially_paid`, `paid` ou `overpaid` e apresenta valores esperado, recebido, pendente e excedente. O codigo de metodo e preservado conforme o XML; como o arquivo nao informa a data do pagamento, a API nao atribui uma data artificial.
+
+Managers e admins podem consultar a receita de hospedagem por `reservation_dailies.daily_date`:
+
+```text
+GET /api/v1/hotels/{hotel}/revenue-reports?from=2026-01-01&to=2026-12-31&group_by=month
+```
+
+`group_by` aceita `day`, `month`, `quarter`, `semester` ou `year`. A receita do periodo e a soma das diarias; o resumo de pagamentos considera cada reserva com diarias no intervalo uma unica vez. Portanto, ele demonstra a cobertura financeira dessas reservas e nao um fluxo de caixa por data de recebimento.
 
 ## Execucao via CRON
 

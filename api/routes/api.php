@@ -3,10 +3,12 @@
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\HotelAvailabilityController;
 use App\Http\Controllers\Api\V1\HotelController;
+use App\Http\Controllers\Api\V1\HotelRevenueReportController;
 use App\Http\Controllers\Api\V1\HotelUserController;
 use App\Http\Controllers\Api\V1\ImportIssueController;
 use App\Http\Controllers\Api\V1\ImportRunController;
 use App\Http\Controllers\Api\V1\ReservationController;
+use App\Http\Controllers\Api\V1\ReservationPaymentController;
 use App\Http\Controllers\Api\V1\RoomController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,6 +42,11 @@ Route::prefix('v1')->as('v1.')->group(function (): void {
         Route::delete('rooms/{room}', [RoomController::class, 'destroy'])->name('rooms.destroy');
 
         Route::post('reservations', [ReservationController::class, 'store'])->name('reservations.store');
+        Route::get('reservations/{reservation}/payments', [ReservationPaymentController::class, 'index'])
+            ->name('reservations.payments.index');
+
+        Route::get('hotels/{hotel}/revenue-reports', [HotelRevenueReportController::class, 'show'])
+            ->name('hotels.revenue-reports.show');
 
         Route::get('hotels/{hotel}/users', [HotelUserController::class, 'index'])->name('hotels.users.index');
         Route::post('hotels/{hotel}/users', [HotelUserController::class, 'store'])->name('hotels.users.store');

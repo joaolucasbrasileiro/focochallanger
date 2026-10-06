@@ -8,5 +8,7 @@ enum Permission: string
     case ViewRooms = 'rooms.view';
     case ManageRooms = 'rooms.manage';
     case CreateReservations = 'reservations.create';
+    case ViewReservationPayments = 'reservation_payments.view';
+    case ViewFinancialReports = 'financial_reports.view';
     case ViewImports = 'imports.view';
 }

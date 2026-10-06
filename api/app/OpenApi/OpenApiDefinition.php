@@ -7,7 +7,7 @@ use OpenApi\Attributes as OA;
 #[OA\Info(
     version: '1.0.0',
     title: 'Foco Hotel API',
-    description: 'API REST para consulta de hoteis, disponibilidade, gerenciamento de acomodacoes, criacao de reservas e auditoria de importacoes XML.',
+    description: 'API REST para consulta de hoteis, disponibilidade, gerenciamento de acomodacoes, reservas, pagamentos, relatorios e auditoria de importacoes XML.',
 )]
 #[OA\Server(
     url: '/api/v1',
@@ -35,6 +35,14 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(
     name: 'Reservas',
     description: 'Criacao de reservas mediante disponibilidade.',
+)]
+#[OA\Tag(
+    name: 'Pagamentos',
+    description: 'Consulta da situacao financeira e dos pagamentos informados para uma reserva.',
+)]
+#[OA\Tag(
+    name: 'Relatorios',
+    description: 'Receita de hospedagem por diaria e cobertura financeira das reservas do hotel.',
 )]
 #[OA\Tag(
     name: 'Importacoes',

@@ -19,11 +19,14 @@ enum UserRole: string
                 Permission::ViewRooms,
                 Permission::ManageRooms,
                 Permission::CreateReservations,
+                Permission::ViewReservationPayments,
+                Permission::ViewFinancialReports,
                 Permission::ViewImports,
             ],
             self::Receptionist => [
                 Permission::ViewRooms,
                 Permission::CreateReservations,
+                Permission::ViewReservationPayments,
             ],
         };
     }
