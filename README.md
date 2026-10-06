@@ -99,7 +99,26 @@ docker compose up -d cron
 
 ```bash
 docker compose ps
+```
+
+Os servicos `app`, `db` e `cron` devem aparecer em execucao, e o banco deve aparecer como `healthy`.
+
+Depois, abra no navegador:
+
+```text
+http://localhost:8080/api/v1/hotels
+```
+
+O endereco testa o endpoint publico de hoteis e deve retornar uma resposta JSON. Se `APP_PORT` foi alterada no `.env`, substitua `8080` pela porta configurada.
+
+Opcionalmente, o mesmo teste pode ser feito pelo terminal:
+
+```bash
+# macOS ou Linux
 curl -H 'Accept: application/json' http://localhost:8080/api/v1/hotels
+
+# Windows PowerShell
+curl.exe -H "Accept: application/json" http://localhost:8080/api/v1/hotels
 ```
 
 Servicos executados:
