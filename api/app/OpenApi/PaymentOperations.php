@@ -27,4 +27,32 @@ use OpenApi\Attributes as OA;
         new OA\Response(response: 404, description: 'Reserva nao encontrada.', content: new OA\JsonContent(ref: '#/components/schemas/MessageError')),
     ],
 )]
+#[OA\Post(
+    path: '/reservations/{reservation}/payments',
+    security: [['sanctum' => []]],
+    tags: ['Pagamentos'],
+    summary: 'Registra um pagamento manual para a reserva',
+    description: 'Adiciona um pagamento a reserva e retorna a situacao financeira atualizada.',
+    parameters: [
+        new OA\Parameter(name: 'reservation', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+    ],
+    requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(ref: '#/components/schemas/ReservationPaymentInput'),
+    ),
+    responses: [
+        new OA\Response(
+            response: 201,
+            description: 'Pagamento registrado e resumo financeiro atualizado.',
+            content: new OA\JsonContent(
+                properties: [new OA\Property(property: 'data', ref: '#/components/schemas/ReservationPaymentSummary')],
+                type: 'object',
+            ),
+        ),
+        new OA\Response(response: 401, description: 'Token ausente ou invalido.', content: new OA\JsonContent(ref: '#/components/schemas/MessageError')),
+        new OA\Response(response: 403, description: 'Usuario sem acesso ao hotel da reserva.', content: new OA\JsonContent(ref: '#/components/schemas/MessageError')),
+        new OA\Response(response: 404, description: 'Reserva nao encontrada.', content: new OA\JsonContent(ref: '#/components/schemas/MessageError')),
+        new OA\Response(response: 422, description: 'Dados invalidos para o pagamento.', content: new OA\JsonContent(ref: '#/components/schemas/ValidationError')),
+    ],
+)]
 class PaymentOperations {}

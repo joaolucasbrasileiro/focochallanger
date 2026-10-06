@@ -300,12 +300,25 @@ As diarias devem cobrir todo o periodo. O total e calculado pela soma das diaria
 | Metodo | Endpoint | Finalidade |
 | --- | --- | --- |
 | `GET` | `/api/v1/reservations/{reservation}/payments` | Pagamentos e saldo da reserva. |
+| `POST` | `/api/v1/reservations/{reservation}/payments` | Registrar pagamento manual. |
 | `GET` | `/api/v1/hotels/{hotel}/revenue-reports` | Relatorio financeiro. |
 | `GET` | `/api/v1/import-runs` | Execucoes de importacao. |
 | `GET` | `/api/v1/import-issues` | Pendencias de importacao. |
 | Varios | `/api/v1/hotels/{hotel}/users` | Usuarios e papeis do hotel. |
 
 Os parametros e respostas completos estao no Swagger.
+
+Registrar pagamento manual:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/reservations/1/payments \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"method_code":"1","amount":"150.00"}'
+```
+
+A resposta retorna os pagamentos da reserva e o resumo financeiro atualizado.
 
 ## Swagger/OpenAPI
 

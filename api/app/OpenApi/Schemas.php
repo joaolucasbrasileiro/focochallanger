@@ -88,8 +88,16 @@ use OpenApi\Attributes as OA;
     required: ['id', 'method_code', 'amount'],
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 1),
-        new OA\Property(property: 'method_code', type: 'integer', example: 1),
+        new OA\Property(property: 'method_code', type: 'string', example: '1'),
         new OA\Property(property: 'amount', type: 'string', example: '500.00'),
+    ],
+)]
+#[OA\Schema(
+    schema: 'ReservationPaymentInput',
+    required: ['method_code', 'amount'],
+    properties: [
+        new OA\Property(property: 'method_code', type: 'string', maxLength: 32, example: '1'),
+        new OA\Property(property: 'amount', type: 'number', format: 'float', minimum: 0.01, example: 150.00),
     ],
 )]
 #[OA\Schema(

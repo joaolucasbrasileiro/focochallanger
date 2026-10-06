@@ -44,6 +44,8 @@ Route::prefix('v1')->as('v1.')->group(function (): void {
         Route::post('reservations', [ReservationController::class, 'store'])->name('reservations.store');
         Route::get('reservations/{reservation}/payments', [ReservationPaymentController::class, 'index'])
             ->name('reservations.payments.index');
+        Route::post('reservations/{reservation}/payments', [ReservationPaymentController::class, 'store'])
+            ->name('reservations.payments.store');
 
         Route::get('hotels/{hotel}/revenue-reports', [HotelRevenueReportController::class, 'show'])
             ->name('hotels.revenue-reports.show');

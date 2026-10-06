@@ -65,6 +65,46 @@ class ReservationPaymentApiTest extends TestCase
             ->assertJsonPath('data.financial.status', 'overpaid');
     }
 
+    public function test_receptionist_can_record_a_manual_payment_for_a_reservation(): void
+    {
+        [$reservation] = $this->reservationForAuthenticatedReceptionist('300.00');
+        ReservationPayment::factory()->for($reservation)->create(['amount' => '50.00']);
+
+        $this->postJson("/api/v1/reservations/{$reservation->id}/payments", [
+            'method_code' => '3',
+            'amount' => '150.00',
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.financial.expected_amount', '300.00')
+            ->assertJsonPath('data.financial.received_amount', '200.00')
+            ->assertJsonPath('data.financial.outstanding_amount', '100.00')
+            ->assertJsonPath('data.financial.overpaid_amount', '0.00')
+            ->assertJsonPath('data.financial.status', 'partially_paid')
+            ->assertJsonCount(2, 'data.payments')
+            ->assertJsonPath('data.payments.1.method_code', '3')
+            ->assertJsonPath('data.payments.1.amount', '150.00');
+
+        $this->assertDatabaseHas('reservation_payments', [
+            'reservation_id' => $reservation->id,
+            'method_code' => '3',
+            'amount' => '150.00',
+        ]);
+    }
+
+    public function test_manual_payment_requires_valid_payment_data(): void
+    {
+        [$reservation] = $this->reservationForAuthenticatedReceptionist('300.00');
+
+        $this->postJson("/api/v1/reservations/{$reservation->id}/payments", [
+            'method_code' => '',
+            'amount' => '0.00',
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['method_code', 'amount']);
+
+        $this->assertDatabaseCount('reservation_payments', 0);
+    }
+
     public function test_user_cannot_view_payments_from_another_hotel(): void
     {
         $hotel = Hotel::factory()->create();
@@ -81,6 +121,27 @@ class ReservationPaymentApiTest extends TestCase
             ->assertJsonPath('message', 'Você não tem permissão para consultar os pagamentos desta reserva.');
     }
 
+    public function test_user_cannot_record_payments_for_another_hotel(): void
+    {
+        $hotel = Hotel::factory()->create();
+        $reservation = Reservation::factory()
+            ->for(Room::factory()->for($hotel))
+            ->create();
+        $unrelatedHotel = Hotel::factory()->create();
+        $user = User::factory()->create();
+        HotelMembership::factory()->for($unrelatedHotel)->for($user)->manager()->create();
+        Sanctum::actingAs($user, ['api:access']);
+
+        $this->postJson("/api/v1/reservations/{$reservation->id}/payments", [
+            'method_code' => '1',
+            'amount' => '50.00',
+        ])
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Você não tem permissão para registrar pagamentos nesta reserva.');
+
+        $this->assertDatabaseCount('reservation_payments', 0);
+    }
+
     /**
      * @return array{Reservation, User}
      */
@@ -91,6 +152,23 @@ class ReservationPaymentApiTest extends TestCase
         $reservation = Reservation::factory()->for($room)->create(['total' => $total]);
         $user = User::factory()->create();
         HotelMembership::factory()->for($hotel)->for($user)->manager()->create();
+        Sanctum::actingAs($user, ['api:access']);
+
+        return [$reservation, $user];
+    }
+
+    /**
+     * @return array{Reservation, User}
+     */
+    private function reservationForAuthenticatedReceptionist(string $total): array
+    {
+        $hotel = Hotel::factory()->create();
+        $room = Room::factory()->for($hotel)->create();
+        $reservation = Reservation::factory()->for($room)->create(['total' => $total]);
+        $user = User::factory()->create();
+        HotelMembership::factory()->for($hotel)->for($user)->create([
+            'role' => UserRole::Receptionist,
+        ]);
         Sanctum::actingAs($user, ['api:access']);
 
         return [$reservation, $user];
