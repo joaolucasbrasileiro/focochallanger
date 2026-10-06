@@ -174,6 +174,67 @@ use OpenApi\Attributes as OA;
     ],
 )]
 #[OA\Schema(
+    schema: 'RegisterInput',
+    required: ['name', 'email', 'password', 'password_confirmation', 'device_name'],
+    properties: [
+        new OA\Property(property: 'name', type: 'string', example: 'João Silva'),
+        new OA\Property(property: 'email', type: 'string', format: 'email', example: 'joao@foco.test'),
+        new OA\Property(property: 'password', type: 'string', format: 'password', example: 'password123'),
+        new OA\Property(property: 'password_confirmation', type: 'string', format: 'password', example: 'password123'),
+        new OA\Property(property: 'device_name', type: 'string', example: 'Postman'),
+    ],
+)]
+#[OA\Schema(
+    schema: 'LoginInput',
+    required: ['email', 'password', 'device_name'],
+    properties: [
+        new OA\Property(property: 'email', type: 'string', format: 'email', example: 'admin@foco.test'),
+        new OA\Property(property: 'password', type: 'string', format: 'password', example: 'password123'),
+        new OA\Property(property: 'device_name', type: 'string', example: 'Postman'),
+    ],
+)]
+#[OA\Schema(
+    schema: 'HotelMembership',
+    required: ['id', 'hotel', 'role', 'permissions'],
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 1),
+        new OA\Property(property: 'hotel', ref: '#/components/schemas/HotelSummary'),
+        new OA\Property(
+            property: 'user',
+            type: 'object',
+            nullable: true,
+            properties: [
+                new OA\Property(property: 'id', type: 'integer', example: 1),
+                new OA\Property(property: 'name', type: 'string', example: 'Maria Silva'),
+                new OA\Property(property: 'email', type: 'string', format: 'email', example: 'maria@foco.test'),
+            ],
+        ),
+        new OA\Property(property: 'role', type: 'string', enum: ['admin', 'manager', 'receptionist'], example: 'manager'),
+        new OA\Property(property: 'permissions', type: 'array', items: new OA\Items(type: 'string')),
+    ],
+)]
+#[OA\Schema(
+    schema: 'AuthenticatedUser',
+    required: ['id', 'name', 'email', 'memberships'],
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 1),
+        new OA\Property(property: 'name', type: 'string', example: 'Maria Silva'),
+        new OA\Property(property: 'email', type: 'string', format: 'email', example: 'maria@foco.test'),
+        new OA\Property(property: 'memberships', type: 'array', items: new OA\Items(ref: '#/components/schemas/HotelMembership')),
+    ],
+)]
+#[OA\Schema(
+    schema: 'HotelUserInput',
+    required: ['email', 'role'],
+    properties: [
+        new OA\Property(property: 'name', type: 'string', nullable: true, example: 'Maria Silva'),
+        new OA\Property(property: 'email', type: 'string', format: 'email', example: 'maria@foco.test'),
+        new OA\Property(property: 'password', type: 'string', format: 'password', nullable: true, example: 'password123'),
+        new OA\Property(property: 'password_confirmation', type: 'string', format: 'password', nullable: true, example: 'password123'),
+        new OA\Property(property: 'role', type: 'string', enum: ['admin', 'manager', 'receptionist'], example: 'receptionist'),
+    ],
+)]
+#[OA\Schema(
     schema: 'ImportRun',
     required: [
         'id',

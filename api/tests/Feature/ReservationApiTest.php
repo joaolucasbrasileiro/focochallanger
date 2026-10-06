@@ -2,10 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Enums\UserRole;
 use App\Models\Hotel;
+use App\Models\HotelMembership;
 use App\Models\Reservation;
 use App\Models\Room;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class ReservationApiTest extends TestCase
@@ -15,6 +19,7 @@ class ReservationApiTest extends TestCase
     public function test_it_creates_a_reservation_in_an_available_room(): void
     {
         $hotel = Hotel::factory()->create();
+        $this->actingAsForHotel($hotel);
         $occupiedRoom = Room::factory()->for($hotel)->create(['name' => 'Standard']);
         $availableRoom = Room::factory()->for($hotel)->create(['name' => 'Standard']);
         Reservation::factory()->for($occupiedRoom)->create([
@@ -43,6 +48,7 @@ class ReservationApiTest extends TestCase
     public function test_it_rejects_a_reservation_when_no_room_is_available(): void
     {
         $hotel = Hotel::factory()->create();
+        $this->actingAsForHotel($hotel);
         $room = Room::factory()->for($hotel)->create(['name' => 'Standard']);
         Reservation::factory()->for($room)->create([
             'check_in' => '2026-11-10',
@@ -59,6 +65,7 @@ class ReservationApiTest extends TestCase
     public function test_it_validates_that_dailies_cover_the_full_stay_period(): void
     {
         $hotel = Hotel::factory()->create();
+        $this->actingAsForHotel($hotel);
         Room::factory()->for($hotel)->create(['name' => 'Standard']);
         $payload = $this->reservationPayload($hotel->id);
         $payload['dailies'] = [[
@@ -99,5 +106,14 @@ class ReservationApiTest extends TestCase
                 ],
             ],
         ];
+    }
+
+    private function actingAsForHotel(Hotel $hotel): void
+    {
+        $user = User::factory()->create();
+        HotelMembership::factory()->for($hotel)->for($user)->create([
+            'role' => UserRole::Receptionist,
+        ]);
+        Sanctum::actingAs($user, ['api:access']);
     }
 }

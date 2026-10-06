@@ -13,6 +13,8 @@ class ImportRunController extends Controller
 {
     public function index(): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', ImportRun::class);
+
         return ImportRunResource::collection(
             $this->queryWithIssueCounts()
                 ->orderByDesc('started_at')
@@ -22,6 +24,8 @@ class ImportRunController extends Controller
 
     public function show(ImportRun $importRun): ImportRunResource
     {
+        $this->authorize('view', $importRun);
+
         $importRun->loadCount([
             'issues',
             'issues as reservation_issues_count' => fn (Builder $query): Builder => $query

@@ -58,7 +58,7 @@ O comando retorna codigo `0` quando nao existe lote pendente ou quando a importa
 
 Uma reserva invalida nunca e inserida em `reservations` e, por isso, nao interfere na disponibilidade. Ela e guardada em `import_issues`, vinculada a execucao que a recebeu. O registro preserva a origem, o identificador externo, o codigo e a mensagem do erro, alem do trecho XML original.
 
-As pendencias e execucoes tambem podem ser consultadas pela API:
+As pendencias e execucoes tambem podem ser consultadas pela API apos autenticacao:
 
 | Metodo | Endpoint | Finalidade |
 | --- | --- | --- |
@@ -68,6 +68,67 @@ As pendencias e execucoes tambem podem ser consultadas pela API:
 | `GET` | `/api/v1/import-issues/{importIssue}` | Consulta uma pendencia, incluindo o XML original. |
 
 A documentacao interativa esta disponivel em `http://localhost:8080/api/documentation` quando os containers estiverem em execucao.
+
+## Autenticacao e autorizacao
+
+A API utiliza Laravel Sanctum com tokens Bearer. As rotas de consulta de hoteis e disponibilidade continuam publicas para permitir integracoes externas:
+
+```text
+GET /api/v1/hotels
+GET /api/v1/hotels/{hotel}/availability
+POST /api/v1/register
+POST /api/v1/auth/login
+```
+
+As operacoes de quartos, reservas, importacoes e gestao de usuarios exigem autenticacao. O mesmo usuario pode possuir papeis diferentes em cada hotel por meio de `hotel_memberships`.
+
+| Papel | Permissoes |
+| --- | --- |
+| `admin` | Todas as permissoes, incluindo gestao de usuarios. |
+| `manager` | Consulta e gestao de quartos, criacao de reservas e consulta de importacoes. |
+| `receptionist` | Consulta de quartos e criacao de reservas. |
+
+O cadastro publico cria somente a conta, sem vincula-la a qualquer hotel. Enquanto nao possuir registros em `hotel_memberships`, o usuario e considerado comum e possui somente o mesmo acesso publico de um visitante:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/register \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Joao Silva","email":"joao@foco.test","password":"password123","password_confirmation":"password123","device_name":"Postman"}'
+```
+
+O cadastro ja retorna um token Sanctum, mas o usuario comum nao pode acessar quartos, reservas, importacoes ou gestao de usuarios. Um administrador escolhe o hotel e o papel ao vincular o usuario existente por e-mail em `POST /api/v1/hotels/{hotel}/users`.
+
+Depois que os hoteis forem importados, crie o primeiro administrador. O comando solicita a senha sem exibi-la no terminal:
+
+```bash
+docker compose exec app php artisan users:create-admin 1 admin@foco.test --name="Administrador"
+```
+
+Autentique o usuario:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/login \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@foco.test","password":"sua-senha","device_name":"Postman"}'
+```
+
+O token e exibido apenas nessa resposta. Envie-o nas rotas protegidas:
+
+```bash
+curl http://localhost:8080/api/v1/auth/me \
+  -H 'Accept: application/json' \
+  -H 'Authorization: Bearer SEU_TOKEN'
+```
+
+O token expira por padrao em 480 minutos, conforme `SANCTUM_EXPIRATION` em `api/.env`. Para revogar somente o token atual:
+
+```text
+DELETE /api/v1/auth/logout
+```
+
+Somente um `admin` do hotel pode listar, criar, alterar ou remover vinculos de usuarios em `/api/v1/hotels/{hotel}/users`. O sistema impede que o ultimo administrador de um hotel seja removido ou rebaixado.
 
 ## Execucao via CRON
 

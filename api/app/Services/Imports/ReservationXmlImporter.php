@@ -35,6 +35,10 @@ class ReservationXmlImporter
                     $externalIdentifier,
                     $exception,
                     $this->rawPayload($reserveNode),
+                    [
+                        'hotel_external_id' => $this->attributeValue($reserveNode, 'hotelCode'),
+                        'room_external_id' => $this->attributeValue($reserveNode, 'roomCode'),
+                    ],
                 );
 
                 $rejected++;
@@ -96,7 +100,12 @@ class ReservationXmlImporter
 
     private function externalIdentifier(SimpleXMLElement $reserveNode): ?string
     {
-        $value = trim((string) $reserveNode['id']);
+        return $this->attributeValue($reserveNode, 'id');
+    }
+
+    private function attributeValue(SimpleXMLElement $node, string $attribute): ?string
+    {
+        $value = trim((string) $node[$attribute]);
 
         return $value === '' ? null : $value;
     }

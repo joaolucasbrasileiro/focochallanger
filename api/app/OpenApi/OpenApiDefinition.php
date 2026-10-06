@@ -13,6 +13,17 @@ use OpenApi\Attributes as OA;
     url: '/api/v1',
     description: 'API version 1',
 )]
+#[OA\SecurityScheme(
+    securityScheme: 'sanctum',
+    type: 'http',
+    scheme: 'bearer',
+    bearerFormat: 'Sanctum',
+    description: 'Token retornado pelo endpoint de login.',
+)]
+#[OA\Tag(
+    name: 'Autenticacao',
+    description: 'Login, consulta do usuário autenticado e encerramento da sessão.',
+)]
 #[OA\Tag(
     name: 'Hoteis',
     description: 'Consulta de hoteis e disponibilidade de acomodacoes.',
@@ -28,5 +39,9 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(
     name: 'Importacoes',
     description: 'Consulta de execucoes e pendencias geradas na importacao XML.',
+)]
+#[OA\Tag(
+    name: 'Usuarios',
+    description: 'Gestão dos usuários e papéis de cada hotel.',
 )]
 class OpenApiDefinition {}

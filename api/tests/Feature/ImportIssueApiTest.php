@@ -2,23 +2,43 @@
 
 namespace Tests\Feature;
 
+use App\Models\Hotel;
+use App\Models\HotelMembership;
 use App\Models\ImportIssue;
 use App\Models\ImportRun;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class ImportIssueApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    private Hotel $hotel;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $user = User::factory()->create();
+        $this->hotel = Hotel::factory()->create();
+        HotelMembership::factory()
+            ->for($this->hotel)
+            ->for($user)
+            ->manager()
+            ->create();
+        Sanctum::actingAs($user, ['api:access']);
+    }
+
     public function test_it_lists_import_issues_with_filters(): void
     {
-        $reservationIssue = ImportIssue::factory()->create([
+        $reservationIssue = ImportIssue::factory()->forHotel($this->hotel)->create([
             'source' => ImportIssue::SourceReservation,
             'status' => ImportIssue::StatusIncomplete,
             'external_identifier' => '6',
         ]);
-        ImportIssue::factory()->create([
+        ImportIssue::factory()->forHotel($this->hotel)->create([
             'source' => ImportIssue::SourceRoom,
             'status' => ImportIssue::StatusIncomplete,
         ]);
@@ -33,7 +53,7 @@ class ImportIssueApiTest extends TestCase
 
     public function test_it_shows_an_import_issue_with_its_original_payload(): void
     {
-        $issue = ImportIssue::factory()->create([
+        $issue = ImportIssue::factory()->forHotel($this->hotel)->create([
             'raw_payload' => '<Reserve id="6"><Dailies /></Reserve>',
             'error_code' => 'daily_outside_stay_period',
         ]);
@@ -50,7 +70,7 @@ class ImportIssueApiTest extends TestCase
         $run = ImportRun::factory()->create([
             'status' => ImportRun::StatusCompletedWithIssues,
         ]);
-        ImportIssue::factory()->for($run)->count(2)->create([
+        ImportIssue::factory()->for($run)->forHotel($this->hotel)->count(2)->create([
             'source' => ImportIssue::SourceReservation,
         ]);
 
@@ -65,7 +85,7 @@ class ImportIssueApiTest extends TestCase
     public function test_it_shows_an_import_run_with_issue_counts(): void
     {
         $run = ImportRun::factory()->create();
-        ImportIssue::factory()->for($run)->create([
+        ImportIssue::factory()->for($run)->forHotel($this->hotel)->create([
             'source' => ImportIssue::SourceReservation,
         ]);
 
@@ -74,5 +94,19 @@ class ImportIssueApiTest extends TestCase
             ->assertJsonPath('data.id', $run->id)
             ->assertJsonPath('data.issues_count', 1)
             ->assertJsonPath('data.reservation_issues_count', 1);
+    }
+
+    public function test_it_does_not_expose_an_issue_from_another_hotel(): void
+    {
+        $otherHotel = Hotel::factory()->create();
+        $issue = ImportIssue::factory()->forHotel($otherHotel)->create();
+
+        $this->getJson('/api/v1/import-issues')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        $this->getJson("/api/v1/import-issues/{$issue->id}")
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Você não tem permissão para consultar esta pendência de importação.');
     }
 }

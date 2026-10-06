@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Hotel;
 use App\Models\ImportIssue;
 use App\Models\ImportRun;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -28,7 +29,18 @@ class ImportIssueFactory extends Factory
             'raw_payload' => '<Reserve id="1" />',
             'metadata' => [
                 'record_type' => 'Reserve',
+                'hotel_external_id' => (string) fake()->numberBetween(1, 9_999_999),
             ],
         ];
+    }
+
+    public function forHotel(Hotel $hotel): static
+    {
+        return $this->state(fn (): array => [
+            'metadata' => [
+                'record_type' => 'Reserve',
+                'hotel_external_id' => (string) $hotel->external_id,
+            ],
+        ]);
     }
 }

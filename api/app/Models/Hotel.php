@@ -6,6 +6,7 @@ use Database\Factories\HotelFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
@@ -23,6 +24,18 @@ class Hotel extends Model
     public function reservations(): HasManyThrough
     {
         return $this->hasManyThrough(Reservation::class, Room::class);
+    }
+
+    public function memberships(): HasMany
+    {
+        return $this->hasMany(HotelMembership::class);
+    }
+
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'hotel_memberships')
+            ->withPivot(['id', 'role'])
+            ->withTimestamps();
     }
 
     /**

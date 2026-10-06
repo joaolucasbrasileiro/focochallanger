@@ -2,10 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Enums\UserRole;
 use App\Models\Hotel;
+use App\Models\HotelMembership;
 use App\Models\Reservation;
 use App\Models\Room;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class RoomApiTest extends TestCase
@@ -15,6 +19,7 @@ class RoomApiTest extends TestCase
     public function test_it_lists_rooms_with_their_hotels(): void
     {
         $hotel = Hotel::factory()->create();
+        $this->actingAsForHotel($hotel);
         $room = Room::factory()->for($hotel)->create([
             'name' => 'Standard',
         ]);
@@ -29,6 +34,7 @@ class RoomApiTest extends TestCase
     public function test_it_creates_a_room(): void
     {
         $hotel = Hotel::factory()->create();
+        $this->actingAsForHotel($hotel);
 
         $this->postJson('/api/v1/rooms', [
             'hotel_id' => $hotel->id,
@@ -49,6 +55,8 @@ class RoomApiTest extends TestCase
 
     public function test_it_validates_the_hotel_when_creating_a_room(): void
     {
+        $this->actingAsForHotel(Hotel::factory()->create());
+
         $this->postJson('/api/v1/rooms', [
             'hotel_id' => 999,
             'name' => 'Standard',
@@ -60,6 +68,7 @@ class RoomApiTest extends TestCase
     public function test_it_updates_a_room_with_put_and_patch(): void
     {
         $hotel = Hotel::factory()->create();
+        $this->actingAsForHotel($hotel);
         $room = Room::factory()->for($hotel)->create([
             'name' => 'Standard',
             'is_active' => true,
@@ -87,6 +96,7 @@ class RoomApiTest extends TestCase
     public function test_it_returns_a_room_by_its_internal_identifier(): void
     {
         $room = Room::factory()->create();
+        $this->actingAsForHotel($room->hotel);
 
         $this->getJson("/api/v1/rooms/{$room->id}")
             ->assertOk()
@@ -97,6 +107,7 @@ class RoomApiTest extends TestCase
     public function test_it_deletes_a_room_without_reservations(): void
     {
         $room = Room::factory()->create();
+        $this->actingAsForHotel($room->hotel);
 
         $this->deleteJson("/api/v1/rooms/{$room->id}")
             ->assertNoContent();
@@ -109,6 +120,7 @@ class RoomApiTest extends TestCase
     public function test_it_does_not_delete_a_room_with_reservations(): void
     {
         $room = Room::factory()->create();
+        $this->actingAsForHotel($room->hotel);
         Reservation::factory()->for($room)->create();
 
         $this->deleteJson("/api/v1/rooms/{$room->id}")
@@ -118,5 +130,14 @@ class RoomApiTest extends TestCase
         $this->assertDatabaseHas('rooms', [
             'id' => $room->id,
         ]);
+    }
+
+    private function actingAsForHotel(Hotel $hotel, UserRole $role = UserRole::Manager): User
+    {
+        $user = User::factory()->create();
+        HotelMembership::factory()->for($hotel)->for($user)->create(['role' => $role]);
+        Sanctum::actingAs($user, ['api:access']);
+
+        return $user;
     }
 }

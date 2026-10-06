@@ -6,6 +6,8 @@ use App\Exceptions\Reservations\ReservationUnavailableException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reservations\StoreReservationRequest;
 use App\Http\Resources\ReservationResource;
+use App\Models\Hotel;
+use App\Models\Reservation;
 use App\Services\Reservations\CreateReservationService;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -14,8 +16,13 @@ class ReservationController extends Controller
 {
     public function store(StoreReservationRequest $request, CreateReservationService $reservationCreator): JsonResponse
     {
+        $data = $request->validated();
+        $hotel = Hotel::query()->findOrFail($data['hotel_id']);
+
+        $this->authorize('create', [Reservation::class, $hotel]);
+
         try {
-            $reservation = $reservationCreator->create($request->validated());
+            $reservation = $reservationCreator->create($data);
         } catch (ReservationUnavailableException $exception) {
             return response()->json([
                 'message' => $exception->getMessage(),

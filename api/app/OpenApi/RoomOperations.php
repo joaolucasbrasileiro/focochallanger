@@ -6,6 +6,7 @@ use OpenApi\Attributes as OA;
 
 #[OA\Get(
     path: '/rooms',
+    security: [['sanctum' => []]],
     tags: ['Quartos'],
     summary: 'Lista os quartos cadastrados',
     parameters: [
@@ -28,6 +29,7 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Post(
     path: '/rooms',
+    security: [['sanctum' => []]],
     tags: ['Quartos'],
     summary: 'Cadastra um quarto',
     requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/RoomInput')),
@@ -38,6 +40,7 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Get(
     path: '/rooms/{room}',
+    security: [['sanctum' => []]],
     tags: ['Quartos'],
     summary: 'Consulta um quarto pelo identificador interno',
     parameters: [
@@ -50,6 +53,7 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Put(
     path: '/rooms/{room}',
+    security: [['sanctum' => []]],
     tags: ['Quartos'],
     summary: 'Atualiza os dados informados de um quarto',
     parameters: [
@@ -64,6 +68,7 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Patch(
     path: '/rooms/{room}',
+    security: [['sanctum' => []]],
     tags: ['Quartos'],
     summary: 'Atualiza parcialmente um quarto',
     parameters: [
@@ -78,6 +83,7 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Delete(
     path: '/rooms/{room}',
+    security: [['sanctum' => []]],
     tags: ['Quartos'],
     summary: 'Exclui um quarto sem reservas vinculadas',
     parameters: [

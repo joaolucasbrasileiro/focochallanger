@@ -6,6 +6,7 @@ use OpenApi\Attributes as OA;
 
 #[OA\Post(
     path: '/reservations',
+    security: [['sanctum' => []]],
     tags: ['Reservas'],
     summary: 'Cria uma reserva',
     description: 'Seleciona uma unidade ativa disponivel para a acomodacao informada. As diarias devem cobrir todos os dias entre check-in e check-out.',

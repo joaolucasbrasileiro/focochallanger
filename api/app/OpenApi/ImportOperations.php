@@ -6,6 +6,7 @@ use OpenApi\Attributes as OA;
 
 #[OA\Get(
     path: '/import-runs',
+    security: [['sanctum' => []]],
     tags: ['Importacoes'],
     summary: 'Lista as execucoes de importacao XML',
     responses: [
@@ -25,6 +26,7 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Get(
     path: '/import-runs/{importRun}',
+    security: [['sanctum' => []]],
     tags: ['Importacoes'],
     summary: 'Consulta uma execucao de importacao',
     parameters: [
@@ -37,6 +39,7 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Get(
     path: '/import-issues',
+    security: [['sanctum' => []]],
     tags: ['Importacoes'],
     summary: 'Lista pendencias de importacao',
     parameters: [
@@ -63,6 +66,7 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Get(
     path: '/import-issues/{importIssue}',
+    security: [['sanctum' => []]],
     tags: ['Importacoes'],
     summary: 'Consulta uma pendencia de importacao',
     parameters: [
