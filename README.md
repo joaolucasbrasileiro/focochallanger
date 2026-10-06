@@ -4,6 +4,12 @@ API REST desenvolvida em Laravel para importar dados de hotelaria por XML, geren
 
 O ambiente utiliza Docker para executar a API, o MySQL e o CRON. Os endpoints sao versionados em `/api/v1`, respondem em JSON e possuem documentacao OpenAPI 3.0.0.
 
+## Resumo da entrega
+
+A API cobre os requisitos principais do desafio: importacao dos XMLs por comando executado via CRON, modelagem versionada, CRUD de quartos, criacao de reservas com validacao de disponibilidade e respostas REST em JSON.
+
+Tambem foram implementados diferenciais como Docker, documentacao OpenAPI/Swagger, testes automatizados com PHPUnit, autenticacao com Sanctum, permissoes por hotel, consulta de disponibilidade, gestao de usuarios, pagamentos, relatorios financeiros, auditoria de importacoes e logs de aplicacao/CRON.
+
 ## Tecnologias
 
 - PHP 8.4 com Apache;
