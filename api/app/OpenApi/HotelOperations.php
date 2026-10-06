@@ -16,6 +16,27 @@ use OpenApi\Attributes as OA;
             description: 'Pagina da listagem paginada.',
             schema: new OA\Schema(type: 'integer', minimum: 1, default: 1),
         ),
+        new OA\Parameter(
+            name: 'per_page',
+            in: 'query',
+            required: false,
+            description: 'Quantidade de registros por pagina, limitada a 100.',
+            schema: new OA\Schema(type: 'integer', minimum: 1, maximum: 100, default: 15),
+        ),
+        new OA\Parameter(
+            name: 'name',
+            in: 'query',
+            required: false,
+            description: 'Busca parcial pelo nome do hotel.',
+            schema: new OA\Schema(type: 'string', maxLength: 255),
+        ),
+        new OA\Parameter(
+            name: 'external_id',
+            in: 'query',
+            required: false,
+            description: 'Identificador externo importado do XML.',
+            schema: new OA\Schema(type: 'integer'),
+        ),
     ],
     responses: [
         new OA\Response(

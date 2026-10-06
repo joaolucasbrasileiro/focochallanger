@@ -18,6 +18,7 @@ enum UserRole: string
             self::Manager => [
                 Permission::ViewRooms,
                 Permission::ManageRooms,
+                Permission::ViewReservations,
                 Permission::CreateReservations,
                 Permission::ViewReservationPayments,
                 Permission::ViewFinancialReports,
@@ -25,6 +26,7 @@ enum UserRole: string
             ],
             self::Receptionist => [
                 Permission::ViewRooms,
+                Permission::ViewReservations,
                 Permission::CreateReservations,
                 Permission::ViewReservationPayments,
             ],

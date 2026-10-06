@@ -10,6 +10,16 @@ use Illuminate\Auth\Access\Response;
 
 class ReservationPolicy
 {
+    public function view(User $user, Reservation $reservation): Response
+    {
+        $hotelId = $reservation->room()->value('hotel_id');
+
+        return $hotelId !== null
+            && $user->hasPermissionForHotel($hotelId, Permission::ViewReservations)
+                ? Response::allow()
+                : Response::deny('Você não tem permissão para consultar esta reserva.');
+    }
+
     public function create(User $user, Hotel $hotel): Response
     {
         return $user->hasPermissionForHotel($hotel, Permission::CreateReservations)

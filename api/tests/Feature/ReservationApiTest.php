@@ -80,6 +80,47 @@ class ReservationApiTest extends TestCase
         $this->assertDatabaseCount('reservations', 0);
     }
 
+    public function test_receptionist_can_view_a_reservation_from_their_hotel(): void
+    {
+        $hotel = Hotel::factory()->create();
+        $this->actingAsForHotel($hotel, UserRole::Receptionist);
+        $room = Room::factory()->for($hotel)->create(['name' => 'Standard']);
+        $reservation = Reservation::factory()->for($room)->create([
+            'check_in' => '2026-11-10',
+            'check_out' => '2026-11-12',
+            'total' => '500.00',
+        ]);
+        $reservation->guests()->create([
+            'first_name' => 'Maria',
+            'last_name' => 'Silva',
+            'phone' => '71999999999',
+        ]);
+        $reservation->dailies()->createMany([
+            ['daily_date' => '2026-11-10', 'amount' => '250.00'],
+            ['daily_date' => '2026-11-11', 'amount' => '250.00'],
+        ]);
+
+        $this->getJson("/api/v1/reservations/{$reservation->id}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $reservation->id)
+            ->assertJsonPath('data.room.hotel_id', $hotel->id)
+            ->assertJsonPath('data.total', '500.00')
+            ->assertJsonCount(1, 'data.guests')
+            ->assertJsonCount(2, 'data.dailies');
+    }
+
+    public function test_user_cannot_view_a_reservation_from_another_hotel(): void
+    {
+        $hotel = Hotel::factory()->create();
+        $room = Room::factory()->for($hotel)->create();
+        $reservation = Reservation::factory()->for($room)->create();
+        $this->actingAsForHotel(Hotel::factory()->create(), UserRole::Manager);
+
+        $this->getJson("/api/v1/reservations/{$reservation->id}")
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Você não tem permissão para consultar esta reserva.');
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -108,11 +149,11 @@ class ReservationApiTest extends TestCase
         ];
     }
 
-    private function actingAsForHotel(Hotel $hotel): void
+    private function actingAsForHotel(Hotel $hotel, UserRole $role = UserRole::Receptionist): void
     {
         $user = User::factory()->create();
         HotelMembership::factory()->for($hotel)->for($user)->create([
-            'role' => UserRole::Receptionist,
+            'role' => $role,
         ]);
         Sanctum::actingAs($user, ['api:access']);
     }

@@ -14,6 +14,13 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ReservationController extends Controller
 {
+    public function show(Reservation $reservation): ReservationResource
+    {
+        $this->authorize('view', $reservation);
+
+        return new ReservationResource($reservation->load(['room', 'guests', 'dailies', 'payments']));
+    }
+
     public function store(StoreReservationRequest $request, CreateReservationService $reservationCreator): JsonResponse
     {
         $data = $request->validated();

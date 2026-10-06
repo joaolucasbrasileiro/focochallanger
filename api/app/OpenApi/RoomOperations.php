@@ -11,6 +11,10 @@ use OpenApi\Attributes as OA;
     summary: 'Lista os quartos cadastrados',
     parameters: [
         new OA\Parameter(name: 'page', in: 'query', required: false, description: 'Pagina da listagem paginada.', schema: new OA\Schema(type: 'integer', minimum: 1, default: 1)),
+        new OA\Parameter(name: 'per_page', in: 'query', required: false, description: 'Quantidade de registros por pagina, limitada a 100.', schema: new OA\Schema(type: 'integer', minimum: 1, maximum: 100, default: 15)),
+        new OA\Parameter(name: 'hotel_id', in: 'query', required: false, description: 'Filtra quartos pelo identificador interno do hotel.', schema: new OA\Schema(type: 'integer', example: 1)),
+        new OA\Parameter(name: 'name', in: 'query', required: false, description: 'Busca parcial pelo nome do quarto.', schema: new OA\Schema(type: 'string', maxLength: 255, example: 'Standard')),
+        new OA\Parameter(name: 'is_active', in: 'query', required: false, description: 'Filtra quartos ativos ou inativos.', schema: new OA\Schema(type: 'boolean')),
     ],
     responses: [
         new OA\Response(

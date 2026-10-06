@@ -259,6 +259,13 @@ A resposta agrupa quartos ativos pelo nome e informa `total_units` e `available_
 | `PUT/PATCH` | `/api/v1/rooms/{room}` | Atualizar quarto. |
 | `DELETE` | `/api/v1/rooms/{room}` | Excluir quarto sem reservas. |
 
+As listagens sao paginadas e aceitam filtros simples:
+
+```text
+GET /api/v1/hotels?name=foco&external_id=1&per_page=10
+GET /api/v1/rooms?hotel_id=1&name=standard&is_active=true&per_page=10
+```
+
 Cadastrar um quarto:
 
 ```bash
@@ -295,10 +302,19 @@ curl -X POST http://localhost:8080/api/v1/reservations \
 
 As diarias devem cobrir todo o periodo. O total e calculado pela soma das diarias, e a API seleciona uma unidade disponivel.
 
+Consultar uma reserva:
+
+```bash
+curl http://localhost:8080/api/v1/reservations/1 \
+  -H 'Accept: application/json' \
+  -H "Authorization: Bearer $TOKEN"
+```
+
 ### Outros endpoints
 
 | Metodo | Endpoint | Finalidade |
 | --- | --- | --- |
+| `GET` | `/api/v1/reservations/{reservation}` | Consultar dados completos da reserva. |
 | `GET` | `/api/v1/reservations/{reservation}/payments` | Pagamentos e saldo da reserva. |
 | `POST` | `/api/v1/reservations/{reservation}/payments` | Registrar pagamento manual. |
 | `GET` | `/api/v1/hotels/{hotel}/revenue-reports` | Relatorio financeiro. |

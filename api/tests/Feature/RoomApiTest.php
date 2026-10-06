@@ -31,6 +31,40 @@ class RoomApiTest extends TestCase
             ->assertJsonStructure(['data', 'links', 'meta']);
     }
 
+    public function test_it_lists_rooms_with_pagination_and_filters(): void
+    {
+        $hotel = Hotel::factory()->create();
+        $this->actingAsForHotel($hotel);
+        $standard = Room::factory()->for($hotel)->create([
+            'name' => 'Standard Casal',
+            'is_active' => true,
+        ]);
+        Room::factory()->for($hotel)->create([
+            'name' => 'Standard Inativo',
+            'is_active' => false,
+        ]);
+        Room::factory()->for($hotel)->create([
+            'name' => 'Luxo',
+            'is_active' => true,
+        ]);
+
+        $this->getJson("/api/v1/rooms?hotel_id={$hotel->id}&name=standard&is_active=true&per_page=1")
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $standard->id)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonStructure(['data', 'links', 'meta']);
+    }
+
+    public function test_room_listing_validates_filter_parameters(): void
+    {
+        $hotel = Hotel::factory()->create();
+        $this->actingAsForHotel($hotel);
+
+        $this->getJson('/api/v1/rooms?per_page=101&hotel_id=999')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['per_page', 'hotel_id']);
+    }
+
     public function test_it_creates_a_room(): void
     {
         $hotel = Hotel::factory()->create();

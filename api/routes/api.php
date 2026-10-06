@@ -42,6 +42,7 @@ Route::prefix('v1')->as('v1.')->group(function (): void {
         Route::delete('rooms/{room}', [RoomController::class, 'destroy'])->name('rooms.destroy');
 
         Route::post('reservations', [ReservationController::class, 'store'])->name('reservations.store');
+        Route::get('reservations/{reservation}', [ReservationController::class, 'show'])->name('reservations.show');
         Route::get('reservations/{reservation}/payments', [ReservationPaymentController::class, 'index'])
             ->name('reservations.payments.index');
         Route::post('reservations/{reservation}/payments', [ReservationPaymentController::class, 'store'])
