@@ -63,15 +63,7 @@ As migrations sao executadas manualmente. O comando aplica somente migrations pe
 
 ### 5. Prepare e importe os XMLs iniciais
 
-Antes da importacao, os tres arquivos precisam estar em `imports/incoming` com os nomes esperados pela aplicacao:
-
-```text
-imports/incoming/hotels.xml
-imports/incoming/rooms.xml
-imports/incoming/reserves.xml
-```
-
-Se os XMLs oficiais estiverem na raiz do projeto, copie-os para a caixa de entrada:
+Os XMLs oficiais sao versionados na raiz do projeto. Antes da importacao, copie-os para `imports/incoming`, que funciona como caixa de entrada operacional:
 
 ```bash
 cp hotels.xml imports/incoming/hotels.xml
@@ -156,10 +148,16 @@ imports/archive/YYYY-MM-DD/run-{import_run_id}/
 
 O CRON roda dentro do container `cron`; nao e necessario configurar o sistema operacional da maquina.
 
-A frequencia e definida no `.env` da raiz:
+A frequencia e definida por `IMPORT_CRON_SCHEDULE` no `.env` da raiz. Sem essa variavel, o sistema utiliza o padrao de uma execucao a cada cinco minutos:
 
 ```dotenv
 IMPORT_CRON_SCHEDULE="*/5 * * * *"
+```
+
+Uma expressao CRON possui cinco campos, nesta ordem:
+
+```text
+minuto hora dia-do-mes mes dia-da-semana
 ```
 
 | Frequencia | Expressao |
@@ -168,8 +166,10 @@ IMPORT_CRON_SCHEDULE="*/5 * * * *"
 | A cada 30 minutos | `*/30 * * * *` |
 | A cada hora | `0 * * * *` |
 | Todos os dias as 02:00 | `0 2 * * *` |
+| Toda segunda-feira as 08:30 | `30 8 * * 1` |
+| No primeiro dia do mes a meia-noite | `0 0 1 * *` |
 
-Depois de alterar a frequencia:
+Depois de salvar a nova expressao no `.env`, recrie somente o container do CRON para aplicar a configuracao:
 
 ```bash
 docker compose up -d --force-recreate cron
