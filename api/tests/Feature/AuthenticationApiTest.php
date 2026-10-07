@@ -20,7 +20,6 @@ class AuthenticationApiTest extends TestCase
             'email' => 'JOAO@FOCO.TEST',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            'device_name' => 'Postman',
         ])
             ->assertCreated()
             ->assertJsonPath('data.user.name', 'João Silva')
@@ -31,6 +30,7 @@ class AuthenticationApiTest extends TestCase
         $this->assertDatabaseHas('users', ['email' => 'joao@foco.test']);
         $this->assertDatabaseCount('hotel_memberships', 0);
         $this->assertDatabaseCount('personal_access_tokens', 1);
+        $this->assertDatabaseHas('personal_access_tokens', ['name' => 'API Token']);
 
         $this->withToken($register->json('data.access_token'))
             ->getJson('/api/v1/rooms')
@@ -69,7 +69,6 @@ class AuthenticationApiTest extends TestCase
         $login = $this->postJson('/api/v1/auth/login', [
             'email' => 'ADMIN@FOCO.TEST',
             'password' => 'password123',
-            'device_name' => 'Postman',
         ])
             ->assertOk()
             ->assertJsonPath('data.user.id', $user->id)
@@ -81,6 +80,7 @@ class AuthenticationApiTest extends TestCase
 
         $this->assertIsString($token);
         $this->assertDatabaseCount('personal_access_tokens', 1);
+        $this->assertDatabaseHas('personal_access_tokens', ['name' => 'API Token']);
 
         $headers = ['Authorization' => "Bearer {$token}"];
 

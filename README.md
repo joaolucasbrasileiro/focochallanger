@@ -216,7 +216,7 @@ Login:
 curl -X POST http://localhost:8080/api/v1/auth/login \
   -H 'Accept: application/json' \
   -H 'Content-Type: application/json' \
-  -d '{"email":"admin@foco.test","password":"sua-senha","device_name":"Postman"}'
+  -d '{"email":"admin@foco.test","password":"sua-senha"}'
 ```
 
 Utilize `data.access_token` nas rotas protegidas:

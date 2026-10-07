@@ -16,6 +16,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
 {
+    private const DEFAULT_TOKEN_NAME = 'API Token';
+
     public function register(RegisterRequest $request): JsonResponse
     {
         $data = $request->validated();
@@ -28,7 +30,7 @@ class AuthController extends Controller
 
         return $this->tokenResponse(
             $user,
-            $data['device_name'],
+            $data['device_name'] ?? self::DEFAULT_TOKEN_NAME,
             $request,
             Response::HTTP_CREATED,
         );
@@ -45,7 +47,11 @@ class AuthController extends Controller
             ]);
         }
 
-        return $this->tokenResponse($user, $credentials['device_name'], $request);
+        return $this->tokenResponse(
+            $user,
+            $credentials['device_name'] ?? self::DEFAULT_TOKEN_NAME,
+            $request,
+        );
     }
 
     public function me(Request $request): AuthenticatedUserResource

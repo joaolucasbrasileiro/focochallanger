@@ -27,7 +27,7 @@ class ReservationApiTest extends TestCase
             'check_out' => '2026-11-12',
         ]);
 
-        $this->postJson('/api/v1/reservations', $this->reservationPayload($hotel->id))
+        $response = $this->postJson('/api/v1/reservations', $this->reservationPayload($hotel->id))
             ->assertCreated()
             ->assertJsonPath('data.room_id', $availableRoom->id)
             ->assertJsonPath('data.total', '500.00')
@@ -35,12 +35,12 @@ class ReservationApiTest extends TestCase
             ->assertJsonCount(2, 'data.dailies')
             ->assertJsonCount(0, 'data.payments');
 
-        $this->assertDatabaseHas('reservations', [
-            'room_id' => $availableRoom->id,
-            'check_in' => '2026-11-10',
-            'check_out' => '2026-11-12',
-            'total' => '500.00',
-        ]);
+        $reservation = Reservation::query()->findOrFail($response->json('data.id'));
+
+        $this->assertSame($availableRoom->id, $reservation->room_id);
+        $this->assertSame('2026-11-10', $reservation->check_in->toDateString());
+        $this->assertSame('2026-11-12', $reservation->check_out->toDateString());
+        $this->assertSame('500.00', $reservation->total);
         $this->assertDatabaseCount('reservation_guests', 1);
         $this->assertDatabaseCount('reservation_dailies', 2);
     }

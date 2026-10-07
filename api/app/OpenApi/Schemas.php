@@ -183,22 +183,22 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Schema(
     schema: 'RegisterInput',
-    required: ['name', 'email', 'password', 'password_confirmation', 'device_name'],
+    required: ['name', 'email', 'password', 'password_confirmation'],
     properties: [
         new OA\Property(property: 'name', type: 'string', example: 'João Silva'),
         new OA\Property(property: 'email', type: 'string', format: 'email', example: 'joao@foco.test'),
         new OA\Property(property: 'password', type: 'string', format: 'password', example: 'password123'),
         new OA\Property(property: 'password_confirmation', type: 'string', format: 'password', example: 'password123'),
-        new OA\Property(property: 'device_name', type: 'string', example: 'Postman'),
+        new OA\Property(property: 'device_name', type: 'string', default: 'API Token', example: 'Postman'),
     ],
 )]
 #[OA\Schema(
     schema: 'LoginInput',
-    required: ['email', 'password', 'device_name'],
+    required: ['email', 'password'],
     properties: [
         new OA\Property(property: 'email', type: 'string', format: 'email', example: 'admin@foco.test'),
         new OA\Property(property: 'password', type: 'string', format: 'password', example: 'password123'),
-        new OA\Property(property: 'device_name', type: 'string', example: 'Postman'),
+        new OA\Property(property: 'device_name', type: 'string', default: 'API Token', example: 'Postman'),
     ],
 )]
 #[OA\Schema(

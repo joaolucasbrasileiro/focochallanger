@@ -24,7 +24,7 @@ class LoginRequest extends FormRequest
         return [
             'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'string'],
-            'device_name' => ['required', 'string', 'max:100'],
+            'device_name' => ['sometimes', 'string', 'max:100'],
         ];
     }
 
@@ -46,7 +46,6 @@ class LoginRequest extends FormRequest
             'email.required' => 'O e-mail é obrigatório.',
             'email.email' => 'O e-mail informado é inválido.',
             'password.required' => 'A senha é obrigatória.',
-            'device_name.required' => 'O nome do dispositivo é obrigatório.',
             'device_name.max' => 'O nome do dispositivo não pode ter mais de :max caracteres.',
         ];
     }

@@ -27,7 +27,7 @@ class RegisterRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique(User::class, 'email')],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'device_name' => ['required', 'string', 'max:100'],
+            'device_name' => ['sometimes', 'string', 'max:100'],
         ];
     }
 
@@ -57,7 +57,6 @@ class RegisterRequest extends FormRequest
             'password.required' => 'A senha é obrigatória.',
             'password.min' => 'A senha deve possuir pelo menos :min caracteres.',
             'password.confirmed' => 'A confirmação da senha não corresponde.',
-            'device_name.required' => 'O nome do dispositivo é obrigatório.',
             'device_name.max' => 'O nome do dispositivo não pode ter mais de :max caracteres.',
         ];
     }
